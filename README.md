@@ -1,0 +1,24 @@
+# Infrastructure
+
+あんびる鯖のクラスタに維持する構成を GitOps で管理します。
+
+アプリのソースコード、DB マイグレーション、コンテナのビルド、Helm Chart のソースは [platform](https://github.com/AnvilSaba/platform) で管理します。
+このリポジトリでは、クラスタ構成、環境ごとの設定、暗号化済み Secret、配置する成果物のバージョンを管理します。
+
+## 開始方法
+
+mise と Git を用意し、リポジトリルートで実行します。
+
+```powershell
+mise trust
+mise install
+mise run fmt:check
+```
+
+## ドキュメント
+
+- [開発環境と確認手順](docs/development.md)
+
+## ライセンス
+
+[MIT License](LICENSE) で公開しています。

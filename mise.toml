@@ -1,0 +1,23 @@
+[settings]
+minimum_release_age = "7d"
+
+[tools]
+gh = "2.100.0"
+node = "24.21.0"
+helm = "4.2.4"
+kubectl = "1.37.1"
+"aqua:getsops/sops" = "3.13.3"
+"aqua:FiloSottile/age" = "1.3.2"
+"aqua:kubernetes-sigs/kustomize" = "5.8.2"
+"npm:oxfmt" = "0.71.0"
+
+[task_config]
+shell = "{% if os() == 'windows' %}cmd /d /c{% else %}sh -c{% endif %}"
+
+[tasks.fmt]
+description = "対応ファイルを整形する"
+run = "mise exec -- oxfmt"
+
+[tasks."fmt:check"]
+description = "対応ファイルの整形を検査する"
+run = "mise exec -- oxfmt --check"
