@@ -1,4 +1,6 @@
 [settings]
+experimental = true
+idiomatic_version_file_enable_tools = ["rust"]
 minimum_release_age = "7d"
 
 [tools]
@@ -16,8 +18,18 @@ shell = "{% if os() == 'windows' %}cmd /d /c{% else %}sh -c{% endif %}"
 
 [tasks.fmt]
 description = "対応ファイルを整形する"
-run = "mise exec -- oxfmt"
+run = ["mise exec -- rustfmt --edition 2024 scripts/update.rs", "mise exec -- oxfmt"]
 
 [tasks."fmt:check"]
 description = "対応ファイルの整形を検査する"
-run = "mise exec -- oxfmt --check"
+run = ["mise exec -- rustfmt --edition 2024 --check scripts/update.rs", "mise exec -- oxfmt --check"]
+
+[tasks.test]
+description = "通知入力と配置差分のテストを実行する"
+run = "mise exec -- cargo test -Zscript --manifest-path scripts/update.rs"
+
+[tasks.check]
+description = "更新スクリプトの構文を検査する"
+run = "mise exec -- cargo clippy -Zscript --manifest-path scripts/update.rs --all-targets -- -D warnings"
+
+

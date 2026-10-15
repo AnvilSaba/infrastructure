@@ -18,3 +18,7 @@ mise.*.local.toml
 !.vscode/extensions.json
 .DS_Store
 Thumbs.db
+
+node_modules/
+.platform-source/
+target/

@@ -5,3 +5,9 @@ creation_rules:
   - path_regex: 'config[/\\]production[/\\]secrets[/\\][^/\\]+\.sops\.yaml$'
     encrypted_regex: ^(data|stringData)$
     age: *platform-secrets
+  - path_regex: 'config[/\\]staging[/\\]secrets[/\\][^/\\]+-database\.sops\.yaml$'
+    encrypted_regex: ^password$
+    age: &staging-secrets age15k6c2n0ntwxdyq6det0tx428sd6v6mu0t5evly6npqk278hw2vhsrsuznn
+  - path_regex: 'config[/\\]staging[/\\]secrets[/\\][^/\\]+\.sops\.yaml$'
+    encrypted_regex: ^(data|stringData)$
+    age: *staging-secrets

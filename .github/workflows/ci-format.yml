@@ -20,7 +20,7 @@ jobs:
       - uses: jdx/mise-action@v5.0.1
         with:
           minimum_release_age: 7d
-          install_args: gh node npm:oxfmt
+          install_args: gh node rust npm:oxfmt
       - name: Verify Actions lockfile
         env:
           GH_TOKEN: ${{ github.token }}

@@ -1,0 +1,6 @@
+bot:
+  replicas: 1
+mcLinkServer:
+  port: 25601
+postgres:
+  serviceName: platform-db-rw

@@ -1,0 +1,22 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: staging-platform-apps
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: ./apps/staging/platform
+  prune: false
+  deletionPolicy: Orphan
+  sourceRef:
+    kind: GitRepository
+    name: staging-platform
+  dependsOn:
+    - name: staging-platform-db-roles
+    - name: staging-platform-config
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: platform
+      namespace: anvilsaba-staging
+  timeout: 15m

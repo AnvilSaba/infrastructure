@@ -1,0 +1,24 @@
+# This workflow is managed by gh actions-lock.
+name: GitOps CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: jdx/mise-action@v5.0.1
+        with:
+          minimum_release_age: 7d
+          install_args: rust node helm aqua:kubernetes-sigs/kustomize
+      - run: mise run check
+      - run: mise run test
+      - name: Render all roots
+        run: |
+          for root in clusters/{production,staging} infrastructure/base/{controllers,operator,database,roles} infrastructure/{production,staging}/{database,roles} config/{production,staging} apps/{production,staging}/platform; do
+            mise exec -- kustomize build "$root" > /dev/null
+          done
