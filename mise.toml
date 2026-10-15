@@ -31,5 +31,3 @@ run = "mise exec -- cargo test -Zscript --manifest-path scripts/update.rs"
 [tasks.check]
 description = "更新スクリプトの構文を検査する"
 run = "mise exec -- cargo clippy -Zscript --manifest-path scripts/update.rs --all-targets -- -D warnings"
-
-
