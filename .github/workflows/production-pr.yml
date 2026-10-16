@@ -63,8 +63,6 @@ jobs:
       - name: Prepare validated PR
         env:
           GH_TOKEN: ${{ steps.update.outputs.token }}
-          REGISTRY_TOKEN: ${{ secrets.GITOPS_REGISTRY_READ_TOKEN }}
-          REGISTRY_USER: ${{ vars.GITOPS_REGISTRY_USER }}
           EVENT_NAME: ${{ github.event_name }}
           PAYLOAD: ${{ toJSON(github.event.client_payload) }}
           BOT: ${{ inputs.bot }}
