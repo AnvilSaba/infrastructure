@@ -1,71 +1,60 @@
 # production 更新 PR
 
-platform は公開を所有し、infrastructure は配置の選択と検証を所有する。
-実際の source 移管前にこの workflow の PR を merge しない。停止解除、DB import/切り替え、
-新版 Chart/image の導入を source 移管と同時に行わない。
+production クラスタの Flux が、staging / production の成果物監視と Git 更新を担当する。
+各環境の Flux は自身のクラスタへの反映だけを担当するため、staging が停止していても更新候補を準備できる。
 
-## 手動指定
+## 公開から反映まで
 
-infrastructure の **Production update PR** を main から実行する。
-`bot`、`mc_link_server`、`public_api`、`chart` に各 component の公開済み `component/vX.Y.Z` を指定する。
-空欄は現在の配置を維持する。複数 component は一つの PR にまとめる。
-必要なら `migrator_revision` に公開済み `sha-<完全 SHA>` image に対応する完全 SHA を明示する。
+1. platform の Release がアプリ・Migrator または Chart を GHCR に公開する。
+2. Flux の ImagePolicy がアプリと Chart の安定版 SemVer、Migrator の可変タグ `release` を検出する。
+3. ImageUpdateAutomation `platform-production` が main を基準に `apps/production/platform/` の参照を更新し、
+   `automation/production` ブランチへ push する。image と Chart は digest で固定する。
+4. **Production update PR** workflow が一つの PR を作成する。既存の PR がある場合はその PR を使う。
+5. 人が CI、差分、staging の実行結果、アプリと Migrator の組み合わせ、SQL の後方互換性を確認して merge する。
+6. production 側の Flux が main の変更を反映する。自動 merge や production の直接更新は行わない。
 
-初回の digest 化は、digest 対応済み Chart の release を明示し、必要な application release を選択する。
-旧 Chart に revision annotation がなく組み合わせを検証できない場合は拒否する。
-未指定アプリの参照は維持するため、残る tag 参照も別の明示的な更新で digest 化する。
-旧タグ・実際の稼働内容・公開済み成果物が一致しない場合は、それを直さずに PR を作成しない。
+アプリと Chart は独立して最新版を選ぶ。全成果物を同じ Git revision に揃える制約や、
+Git 祖先・SQL の一致を判定する更新スクリプトは設けない。
+各アプリの起動時 migration チェックを維持する。staging の停止中に更新候補を検出しても動作確認済みではないため、
+必要なら staging を起動して確認してから承認する。
+Migrator の `release` はアプリ release の Migrator ビルド成功時に更新され、staging の `main` と区別する。
+アプリと Migrator は別々に公開されるため、PR が作成された時点で必要な成果物がすべて揃っているとは限らない。
 
-検証処理は platform と同じ Cargo script 形式を使う。
-入力ファイルの例:
+## 認証と初回有効化
 
-```json
-{
-  "releases": {
-    "bot": "bot/v4.0.1",
-    "public-api": "public-api/v1.0.1",
-    "chart": "chart/v1.0.1"
-  },
-  "migrator_revision": null,
-  "automatic": false
-}
-```
+Git 更新用 App と `gitops-update` Secret は [staging の認証設定](staging.md#認証と有効化)を参照する。
+PR 作成 workflow では `GITOPS_UPDATE_APP_ID` variable と `GITOPS_UPDATE_APP_PRIVATE_KEY` secret を設定する。
+App は infrastructure のみにインストールし、Contents: write と Pull requests: write を付与する。
+workflow は自リポジトリが既定のため owner / repositories を列挙せず、PR 作成に必要な権限だけを要求する。
+App token を使うことで生成 PR の CI を自動起動する。
+GHCR は Public を匿名で読み取り、platform の通知用 App / source 読み取り用 App は不要。
 
-ローカルで差分を確認するときは main とタグを取得した platform checkout を渡す。
-`mise exec -- cargo -Zscript scripts/update.rs production <入力.json> <platform checkout>`。
-このコマンドはファイルだけを更新し、PR 作成やクラスタ操作は行わない。
-`mise run fmt`、`mise run fmt:check`、`mise run check`、`mise run test` で確認する。
+source 移管と新版の公開を同時に行わない。
+初期の ImageUpdateAutomation は suspend: true とし、既存 Chart/image と HelmRelease の停止状態を維持する。
+Issue #6 の source 移管が完了してから、digest 対応 Chart の安定版を公開する。
+Chart の policy は最初の digest 対応 release に合わせて `>=1.0.1` とし、旧版 `1.0.0` を候補にしない。
+各 ImagePolicy の Ready を確認したら、`production.yaml` の `platform-production` の suspend を Git で解除する。
+初回 PR では Chart と全 image の digest が埋まり、意図した版を示していることを確認する。
 
-## 整合性と切り戻し
+main は PR 経由で保護し、staging の参照を直接更新する App だけを必要な範囲で許可する。
+`automation/production` への App の push / force-push と、承認後の人による merge を許可する。
+更新後の古い承認を無効にする branch protection を設定する。
+自動 PR 作成は merge の承認を代行しない。
 
-release tag の component と Git commit を照合し、固定した GHCR 公開先から manifest/config を取得する。
-manifest digest、OCI revision、release/SHA tag の対応を検証する。Chart の archive も digest で検証して
-Helm lint/template を実行し、image の digest が実際の manifest に反映されることを確認する。
+## 手動指定と切り戻し
 
-選択アプリの revision と現在の Migrator のうち、履歴上包含する新しい revision の公開済み Migrator を選ぶ。
-別 revision を明示することもできるが、現在の Migrator より古くできない。
-選択・据え置きアプリのすべての revision を Migrator が履歴に含むことと、必須 migration の SQL が
-一致することを検証する。DB の意味的な後方互換性は、この検証だけでは証明できない。
-PR のレビューでは expand-contract と既存アプリ・切り戻し対象の互換性を確認する。
+特定版や複数 component をまとめて指定するときは、main から別ブランチを作り、
+`apps/production/platform/values.yaml` / `chart.yaml` の tag と対応する公開済み digest を PR で変更する。
+変更しない component の参照は維持する。
+Flux の選択範囲も同じ PR で固定する。アプリ / Chart は対象 ImagePolicy の SemVer range を特定版へ絞り、
+Migrator を固定するときは filterTags を既存の完全 SHA タグへ変更して digestReflectionPolicy を IfNotPresent にし、interval を削除する。
+アプリ切り戻しでは Migrator の digest を維持する。DB のロールバックは行わず、旧アプリとの後方互換性を確認する。
+自動追従を再開するときは policy の範囲を戻す。
 
-アプリ切り戻しは古い release tag を手動指定する。Migrator は維持するか前進する。
-自動通知では現在の配置より古い revision を提案せず、重複は変更なしとする。
-
-## release 後の任意通知
-
-platform の Release で `deploy` を有効にした場合だけ、必要な image と Migrator または Chart の
-公開成功後に `platform-release` を送る。既定は無効であり、失敗・dry-run は通知しない。
-単独の既存 release は platform の **Production update PR** からも依頼できる。
-受信側は通知された release/revision/digest と実際の公開物を再照合する。
-
-更新直前に最新 main を確認し、差分の計算中に main が変わったら再検証する。
-検証後の配置内容から automation branch を決め、同じ配置なら自動通知・手動指定とも同じ PR を使う。
-branch 更新には force-with-lease を使い、競合は再試行する。PR の同時作成が競合した場合も既存 PR を再取得して更新する。
-main への直接 push や自動 merge は行わない。作成した PR の CI、差分、記録した artifacts.json を人が確認する。
-権限と App は [staging の設定](staging.md#用途別の認証)に従う。GHCR の公開成果物は匿名で取得する。
+Flux は毎回 main から更新ブランチを作り直すため、`automation/production` を手作業で編集しない。
+PR の自動作成に失敗した場合は、ブランチの差分を確認したうえで workflow_dispatch から再実行できる。
 
 ## 未確認事項
 
-App installation、資格情報、保護ブランチの許可、実 package/tag の存在、実通知と PR CI の起動は
-実際の GitHub Actions で確認が必要。クラスタの source 切り替え・復号・Flux/HelmRelease・疎通も未確認。
-これらをローカル描画の成功で完了扱いにしない。source 引き継ぎは Issue #6 で行う。
+App installation/資格情報、branch protection、実公開チャネル、Flux の push、PR 作成と CI 起動は実環境で確認する。
+クラスタへの source 移管・復号・デプロイ・疎通も未確認。描画成功だけで実反映完了とは扱わない。
