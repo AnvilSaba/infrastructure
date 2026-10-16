@@ -58,15 +58,8 @@ Generate the hybrid X25519 + ML-KEM-768 identity with `mise exec -- age-keygen -
 
 **Mixing constraint:** age rejects PQ and classic recipients in one age ciphertext. SOPS wraps its data key separately for each configured recipient, so it can still retain a classic recovery entry that defeats PQ-only protection. The creation rule and every existing SOPS recipient entry must therefore contain only complete `age1pq1...` recipients, with no classic age, SSH, PGP, KMS, or other non-PQ recovery key. [age label enforcement](https://github.com/FiloSottile/age/blob/v1.3.2/age.go#L117-L202), [SOPS recipient wrapping](https://github.com/getsops/sops/blob/v3.13.3/age/keysource.go#L79-L105), [SOPS encryption call](https://github.com/getsops/sops/blob/v3.13.3/age/keysource.go#L149-L181)
 
-PQ-only `.sops.yaml` creation-rule recipe (replace the placeholder with the complete derived public recipient; the abbreviated value is deliberately invalid):
+The current creation rules are in the repository's [`.sops.yaml`](../../.sops.yaml). Production Secrets use `config/production/secrets/`; database Secrets encrypt `password`, while other Secrets encrypt `data` / `stringData`. Use these rules rather than the former platform path. Staging has separate rules and a separate recipient.
 
-```yaml
-creation_rules:
-  - path_regex: 'deploy[/\\]config[/\\]production[/\\]secrets[/\\][^/\\]+\.sops\.yaml$'
-    encrypted_regex: "^(data|stringData)$"
-    age: REPLACE_WITH_AGE_PQ_PUBLIC_KEY
-```
-
-This matches the repository's production Secret path on Windows and Unix. Multiple recipients may be comma-separated only when every value is a complete `age1pq1...` recipient. Changing the rule does not remove classic recipients already stored in ciphertext. [SOPS rule parsing](https://github.com/getsops/sops/blob/v3.13.3/config/config.go), [recipient-list parsing](https://github.com/getsops/sops/blob/v3.13.3/age/keysource.go#L79-L105)
+For production's PQ-only rules, multiple recipients may be comma-separated only when every value is a complete `age1pq1...` recipient. Changing the rule does not remove classic recipients already stored in ciphertext. [SOPS rule parsing](https://github.com/getsops/sops/blob/v3.13.3/config/config.go), [recipient-list parsing](https://github.com/getsops/sops/blob/v3.13.3/age/keysource.go#L79-L105)
 
 Local implementation evidence confirms that installed age v1.3.2 generated an ephemeral `-pq` identity and SOPS v3.13.3 encrypted and decrypted all six consolidated YAML Secret samples through the repository rule with a PQ-only recipient. No persistent test or production key was created. This verifies the local CLI path; no Flux version is installed or specified, and PQ identity import and live reconciliation remain unverified.
