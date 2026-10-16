@@ -20,5 +20,4 @@ mise.*.local.toml
 Thumbs.db
 
 node_modules/
-.platform-source/
 target/

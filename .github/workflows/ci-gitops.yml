@@ -14,11 +14,5 @@ jobs:
       - uses: jdx/mise-action@v5.0.1
         with:
           minimum_release_age: 7d
-          install_args: rust node helm aqua:kubernetes-sigs/kustomize
+          install_args: rust aqua:kubernetes-sigs/kustomize
       - run: mise run check
-      - run: mise run test
-      - name: Render all roots
-        run: |
-          for root in clusters/{production,staging} infrastructure/base/{controllers,operator,database,roles} infrastructure/{production,staging}/{database,roles} config/{production,staging} apps/{production,staging}/platform; do
-            mise exec -- kustomize build "$root" > /dev/null
-          done

@@ -1,1 +1,17 @@
-{}
+bot:
+  image:
+    tag: main
+    digest: "" # {"$imagepolicy": "flux-system:staging-bot:digest"}
+mcLinkServer:
+  image:
+    tag: main
+    digest: "" # {"$imagepolicy": "flux-system:staging-mc-link-server:digest"}
+publicApi:
+  image:
+    tag: main
+    digest: "" # {"$imagepolicy": "flux-system:staging-public-api:digest"}
+dbMigrator:
+  enabled: true
+  image:
+    tag: main
+    digest: "" # {"$imagepolicy": "flux-system:staging-db-migrator:digest"}
