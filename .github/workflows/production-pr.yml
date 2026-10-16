@@ -63,7 +63,6 @@ jobs:
       - name: Prepare validated PR
         env:
           GH_TOKEN: ${{ steps.update.outputs.token }}
-          SOURCE_TOKEN: ${{ steps.source.outputs.token }}
           REGISTRY_TOKEN: ${{ secrets.GITOPS_REGISTRY_READ_TOKEN }}
           REGISTRY_USER: ${{ vars.GITOPS_REGISTRY_USER }}
           EVENT_NAME: ${{ github.event_name }}
@@ -81,17 +80,17 @@ jobs:
               '{releases:({bot:$bot,"mc-link-server":$mc,"public-api":$api,chart:$chart}|with_entries(select(.value!=""))),migrator_revision:(if $migrator=="" then null else $migrator end)}' \
               > "$RUNNER_TEMP/promotion.json"
           fi
-          branch="automation/production-$(sha256sum "$RUNNER_TEMP/promotion.json" | cut -c1-20)"
           git config user.name 'gitops-update[bot]'
           git config user.email 'gitops-update[bot]@users.noreply.github.com'
           for attempt in 1 2 3 4 5; do
             git fetch origin main
-            git checkout -B "$branch" origin/main
+            git checkout --detach origin/main
             base=$(git rev-parse HEAD)
-            mise exec -- cargo -Zscript scripts/update.rs production "$RUNNER_TEMP/promotion.json" .platform-source
+            branch=$(mise exec -- cargo -Zscript scripts/update.rs production "$RUNNER_TEMP/promotion.json" .platform-source)
             mise exec -- oxfmt apps/production/platform
             git add -- apps/production/platform
             if git diff --cached --quiet; then exit 0; fi
+            git checkout -B "$branch"
             git commit -m 'chore(production): 検証済みreleaseの配置を提案する'
             git fetch origin main
             if [ "$base" != "$(git rev-parse origin/main)" ]; then continue; fi
@@ -106,12 +105,7 @@ jobs:
               printf '```json\n'; cat "$RUNNER_TEMP/promotion.json"; printf '\n```\n\n'
               printf '検証済み配置情報:\n\n```json\n'; cat apps/production/platform/artifacts.json; printf '\n```\n'
             } > "$RUNNER_TEMP/pr-body.md"
-            existing=$(mise exec -- gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')
-            if [ -n "$existing" ]; then
-              mise exec -- gh pr edit "$existing" --body-file "$RUNNER_TEMP/pr-body.md"
-            else
-              mise exec -- gh pr create --base main --head "$branch" --title 'chore(production): 公開済みreleaseの配置を更新する' --body-file "$RUNNER_TEMP/pr-body.md"
-            fi
+            mise exec -- cargo -Zscript scripts/update.rs pr "$branch" "$RUNNER_TEMP/pr-body.md"
             exit 0
           done
           echo '::error::並行更新を解決できませんでした。最新の状態で再実行してください。'

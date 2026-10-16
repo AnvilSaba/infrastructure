@@ -59,7 +59,8 @@ platform の Release で `deploy` を有効にした場合だけ、必要な ima
 受信側は通知された release/revision/digest と実際の公開物を再照合する。
 
 更新直前に最新 main を確認し、差分の計算中に main が変わったら再検証する。
-同じ入力は同じ automation branch/PR を使う。branch 更新には force-with-lease を使い、競合は再試行する。
+検証後の配置内容から automation branch を決め、同じ配置なら自動通知・手動指定とも同じ PR を使う。
+branch 更新には force-with-lease を使い、競合は再試行する。PR の同時作成が競合した場合も既存 PR を再取得して更新する。
 main への直接 push や自動 merge は行わない。作成した PR の CI、差分、記録した artifacts.json を人が確認する。
 権限・App・GHCR 認証は [staging の設定](staging.md#用途別の認証)に従う。
 
