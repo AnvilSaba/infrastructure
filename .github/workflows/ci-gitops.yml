@@ -11,8 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: jdx/mise-action@v5.0.1
+      - uses: AnvilSaba/platform/.github/actions/setup-mise@main
         with:
-          minimum_release_age: 7d
-          install_args: rust aqua:kubernetes-sigs/kustomize
+          install-args: rust aqua:kubernetes-sigs/kustomize
       - run: mise run check
