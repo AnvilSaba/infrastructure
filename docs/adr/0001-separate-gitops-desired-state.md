@@ -6,7 +6,7 @@ status: accepted
 
 アプリケーションの開発・成果物の公開と、環境へ配置するバージョンの決定を分けるため、GitOps の desired state を `AnvilSaba/platform` から `AnvilSaba/infrastructure` へ移す。
 `platform` はアプリケーションコード、DB マイグレーション、コンテナビルド、Helm Chart ソースを所有し、`infrastructure` はクラスタ構成、環境別設定、SOPS で暗号化した Secret、配置する成果物の参照と更新処理を所有する。
-同一リポジトリで管理し続ける場合に比べ、リポジトリ間の通知・認証・変更の追跡が必要になるが、環境への配置判断と履歴を desired state 側に集約できる。
+環境への配置判断と履歴を desired state 側に集約し、成果物の検出と Git 更新には Flux の Image Automation を使用する。
 
 ## 環境別の構成
 
@@ -21,23 +21,21 @@ SOPS の復号鍵も環境別に分け、production は既存鍵を維持し、s
 
 ## 成果物の公開と配置の更新
 
-staging は `platform/main` での各 image build 成功後に、`repository_dispatch` で component、image reference、source revision を通知する。
-`infrastructure` の workflow が対応する `apps/staging/platform/` の参照を `main` に commit し、Flux が反映する。
-`db-migrator` も、その image build が発生した場合は成果物の参照を staging の desired state に反映する。
-アプリの更新に必要な Migrator が未公開の場合、そのアプリの desired state 更新を待ち、必要な成果物が揃ってから一緒に更新する。
-無関係な component の build 完了は待たない。
-Chart も `main` の変更を検証対象とし、変更時に source revision を識別できる検証用成果物を公開して staging の参照を固定する。
+常時稼働する production クラスタに、両環境の image-reflector-controller と image-automation-controller、および更新用リソースを集約する。
+各環境へのデプロイは各クラスタの Flux が行う。staging が停止していても Git の更新は継続し、再起動時に最新の desired state を反映する。
+更新用クラスタに staging の kubeconfig や SOPS 秘密鍵を渡す必要はない。
 
-production は `platform` の release workflow が成果物の publish 完了後に通知し、`infrastructure` が component と release の整合性を検証して、application image・Helm Chart・db-migrator の該当する参照を更新する PR を作成できるようにする。
-公開後に PR を作成するかを切り替え可能にし、成果物の公開と production 更新 PR の作成を分離する。
-`platform` の各 release 実行時に PR の自動作成を選択し、既定では作成しない。
-また、`infrastructure` の Actions を手動実行し、複数 component の公開済み成果物をまとめた production 更新 PR を作成できるようにする。
-手動実行では component ごとに公開済み release tag を明示し、未指定の component は現在の production の参照を維持する。
-`promote-production.rs` が担う release tag、Git revision、db-migrator revision の整合性検証も `infrastructure` に移す。
-複数アプリをまとめる場合は異なる release revision の組み合わせを許可し、選択したアプリの release revision をすべて履歴に含む公開済み Migrator を使用する。
-この関係を検証できない組み合わせは拒否し、DB 変更の後方互換性は引き続き必要とする。
-staging での正常稼働との自動連動は必須にせず、成果物の公開と整合性検証後に PR を作成し、人がレビューして昇格を判断する。
-production の desired state は PR の merge を経由して更新し、Flux が反映する。
+staging は application image・db-migrator・OCI Chart の可変タグ `main` の digest を追跡し、`apps/staging/platform/` の参照を `main` ブランチへ直接 commit する。
+並び替え用の時刻・連番タグ、公開通知、pending 状態、Git の祖先判定、アプリと Migrator の事前互換性判定は設けない。
+各アプリは既存の起動時チェックで必要な migration の適用有無・成功状態・checksum を検証する。
+公開タイミングのずれによる staging の起動失敗は許容し、後続成果物の反映や修正で解消する。
+
+production は application image と Chart の安定版 SemVer、db-migrator の可変タグ `release` を追跡する。
+Flux は `apps/production/platform/` の更新を専用ブランチに push し、小さな GitHub Actions が既存 PR を再利用して提案する。
+成果物の公開は更新候補の検出につながるが、production の desired state は人が PR をレビューして merge するまで変わらない。
+release workflow の通知と任意の deploy 入力、独自の release/Git revision 照合スクリプトは廃止する。
+staging の停止中も候補を作成できるが、Git の更新だけでは動作確認済みとは扱わない。
+アプリ・Migrator の組み合わせと DB の後方互換性はレビューし、未確認なら staging を起動して確認する。
 
 ## 成果物の識別と更新順序
 
@@ -47,19 +45,19 @@ digest 対応に必要な Chart の改修は `platform` で行い、既存環境
 
 `main` の同じ component のビルドは共通の concurrency group に入れ、新しい実行で古い実行をキャンセルする。
 release 用ビルドはこのキャンセル対象から分離する。
-ビルドのキャンセルだけには依存せず、受信側でも component ごとの source revision を Git 履歴で比較し、現在の参照より新しい子孫 revision への自動更新だけを許可する。
-同じ revision と digest の通知は変更なしとし、古い revision の通知では巻き戻さず、履歴の前後関係を確認できない場合は更新を止める。
-更新直前にも最新の desired state と照合し、通知の到着順やビルド時刻を更新順序の根拠にしない。
+可変タグはレジストリで現在公開されている内容を指し、Git の祖先関係を保証しない。
+Flux はタグから解決した digest を Git に記録する。再起動だけで取得内容が変わらないよう、タグだけの配置は避ける。
 
 意図した production アプリの切り戻しは手動 PR で行い、Migrator は以前の revision へ戻さない。
-Migrator の整合性は、更新対象だけでなく据え置くアプリも含めて確認する。
-識別子と順序判定に関する根拠は [公式資料の調査メモ](../research/gitops-artifact-identity-and-ordering.md) に記録する。
+アプリだけを切り戻す場合は Migrator の配置を維持する。Flux による上書きを止めるため、対象 policy の選択範囲も PR で固定する。
+Flux の標準機能と公開チャネルの選択に関する根拠は [公式仕様](https://fluxcd.io/flux/components/image/imagepolicies/#digest-reflection) を参照する。
 
 ## リポジトリ間の認証
 
-通知送信と desired state 更新には GitHub App の短期 token を使用し、用途ごとに認証情報を分けて、対象リポジトリと権限を限定する。
-`repository_dispatch` の送信にも対象リポジトリの `Contents: write` が必要なため、通知用 token もリポジトリへの書き込み権限を持つものとして管理する。
-認証要件の根拠は [GitHub 公式資料の調査メモ](../research/github-gitops-notification-auth.md) に記録する。
+Git 更新には infrastructure のみに Contents: write を持つ GitHub App を使用する。
+PR 作成には Pull requests: write を付与した App token を使用し、PR の CI が自動起動する経路を維持する。
+GHCR は公開パッケージを前提として匿名で読み取り、読み取り用 token や platform の source 読み取り用 App は要求しない。
+platform には GHCR への公開に必要な通常の Actions 権限だけを持たせる。
 
 ## 既存環境の引き継ぎ
 
