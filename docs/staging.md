@@ -9,8 +9,8 @@ Cloudflare Tunnel と hostname を staging 専用に用意する。
 
 1. 対象クラスタの kubeconfig を明示的に選ぶ。別クラスタでは k3s と local-path provisioner を準備する。
 2. Flux と CNPG Operator を共通定義から導入する。同じクラスタで既に導入済みなら再導入しない。
-   `mise exec -- kubectl apply -k infrastructure/base/controllers`、
-   `mise exec -- kubectl apply -k infrastructure/base/operator` を使い、それぞれ rollout を確認する。
+   `mise exec -- kubectl apply --server-side -k infrastructure/base/controllers`、
+   `mise exec -- kubectl apply --server-side -k infrastructure/base/operator` を使い、それぞれ rollout を確認する。
    これらは production の同期定義や DB の稼働を要求しない。
 3. staging 専用 age 秘密鍵を安全な場所に保管する。今回ローカルで生成した `staging.agekey` は Git 対象外。
    `.sops.yaml` の staging recipient だけが公開情報として記録される。
