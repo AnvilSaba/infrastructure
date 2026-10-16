@@ -351,8 +351,13 @@ fn values_for(state: &State, values: &Document) -> Result<()> {
     Ok(())
 }
 
-fn check_chart(artifact: &Artifact, values: &Document, environment: &Path) -> Result<()> {
-    let (_, chart) = registry(artifact)?;
+fn check_chart(
+    artifact: &Artifact,
+    values: &Document,
+    environment: &Path,
+    resolve: impl Fn(&Artifact) -> Result<(Artifact, Option<Vec<u8>>)>,
+) -> Result<()> {
+    let (_, chart) = resolve(artifact)?;
     let directory = tempfile::tempdir()?;
     let archive = directory.path().join("chart.tgz");
     let overrides = directory.path().join("values.yaml");
@@ -392,35 +397,53 @@ fn scalar(document: &Document, path: &str) -> Result<String> {
         .context("YAML scalar がありません")
 }
 
+fn update_staging(
+    payload: &[u8],
+    directory: &Path,
+    source: &Path,
+    resolve: impl Fn(&Artifact) -> Result<(Artifact, Option<Vec<u8>>)>,
+) -> Result<()> {
+    let path = directory.join("artifacts.json");
+    let current: State = serde_json::from_slice(&fs::read(&path)?)?;
+    let input: Artifact = serde_json::from_slice(payload)?;
+    validate(&input)?;
+    let (input, _) = resolve(&input)?;
+    let state = staging(&current, &input, source)?;
+    if state.deployed != current.deployed {
+        let values = document(&directory.join("values.yaml"))?;
+        values_for(&state, &values)?;
+        if COMPONENTS.iter().all(|name| state.deployed.contains_key(*name)) {
+            check_chart(
+                &state.deployed["chart"],
+                &values,
+                &directory.join("environment-values.yaml"),
+                &resolve,
+            )?;
+        }
+        let chart = document(&directory.join("chart.yaml"))?;
+        if let Some(artifact) = state.deployed.get("chart") {
+            chart.try_remove_path("spec.ref")?;
+            chart.try_set_path("spec.ref.digest", artifact.digest.as_str())?;
+        }
+        fs::write(directory.join("values.yaml"), values.to_string())?;
+        fs::write(directory.join("chart.yaml"), chart.to_string())?;
+    }
+    fs::write(path, format!("{}\n", serde_json::to_string_pretty(&state)?))?;
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let args: Vec<String> = env::args().skip(1).collect();
     ensure!(
         args.len() == 3 && args[0] == "staging",
         "使い方: update.rs staging <通知.json> <platform checkout>"
     );
-    let directory = Path::new("apps/staging/platform");
-    let path = directory.join("artifacts.json");
-    let current: State = serde_json::from_slice(&fs::read(&path)?)?;
-    let input: Artifact = serde_json::from_slice(&fs::read(&args[1])?)?;
-    validate(&input)?;
-    let (input, _) = registry(&input)?;
-    let state = staging(&current, &input, Path::new(&args[2]))?;
-    if COMPONENTS.iter().all(|name| state.deployed.contains_key(*name)) {
-        let values = document(&directory.join("values.yaml"))?;
-        values_for(&state, &values)?;
-        check_chart(
-            &state.deployed["chart"],
-            &values,
-            &directory.join("environment-values.yaml"),
-        )?;
-        let chart = document(&directory.join("chart.yaml"))?;
-        chart.try_remove_path("spec.ref")?;
-        chart.try_set_path("spec.ref.digest", state.deployed["chart"].digest.as_str())?;
-        fs::write(directory.join("values.yaml"), values.to_string())?;
-        fs::write(directory.join("chart.yaml"), chart.to_string())?;
-    }
-    fs::write(path, format!("{}\n", serde_json::to_string_pretty(&state)?))?;
-    Ok(())
+    update_staging(
+        &fs::read(&args[1])?,
+        Path::new("apps/staging/platform"),
+        Path::new(&args[2]),
+        registry,
+    )
 }
 
 #[cfg(test)]
@@ -467,6 +490,45 @@ mod tests {
             },
             release: String::new(),
         }
+    }
+
+    #[test]
+    fn initial_notifications_write_available_references_without_waiting_for_other_apps() -> Result<()> {
+        let (repo, a, b) = history()?;
+        let directory = tempfile::tempdir()?;
+        fs::write(
+            directory.path().join("artifacts.json"),
+            serde_json::to_vec(&State::default())?,
+        )?;
+        fs::write(directory.path().join("values.yaml"), "{}\n")?;
+        fs::write(directory.path().join("chart.yaml"), "spec:\n  ref:\n    tag: 1.0.0\n")?;
+        let notify = |input: Artifact| {
+            update_staging(
+                &serde_json::to_vec(&input)?,
+                directory.path(),
+                repo.path(),
+                |artifact| Ok((artifact.clone(), None)),
+            )
+        };
+        notify(artifact("bot", &b))?;
+        assert_eq!(fs::read_to_string(directory.path().join("values.yaml"))?, "{}\n");
+        notify(artifact("db-migrator", &a))?;
+        notify(artifact("chart", &b))?;
+        let values = document(&directory.path().join("values.yaml"))?;
+        assert_eq!(scalar(&values, "bot.image.digest")?, artifact("bot", &b).digest);
+        assert_eq!(scalar(&values, "dbMigrator.image.tag")?, format!("sha-{a}"));
+        assert!(values.try_get_path("mcLinkServer").is_err());
+        assert!(values.try_get_path("publicApi").is_err());
+        let chart = document(&directory.path().join("chart.yaml"))?;
+        assert_eq!(scalar(&chart, "spec.ref.digest")?, artifact("chart", &b).digest);
+        assert!(chart.try_get_path("spec.ref.tag").is_err());
+        let before = fs::read(directory.path().join("values.yaml"))?;
+        notify(artifact("bot", &b))?;
+        notify(artifact("bot", &a))?;
+        assert_eq!(fs::read(directory.path().join("values.yaml"))?, before);
+        assert!(update_staging(b"{}", directory.path(), repo.path(), |_| unreachable!()).is_err());
+        assert_eq!(fs::read(directory.path().join("values.yaml"))?, before);
+        Ok(())
     }
 
     #[test]

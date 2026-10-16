@@ -37,7 +37,8 @@ Chart のソース revision も OCI annotation で照合し、固定した chart
 通知と pending/deployed の追跡は `apps/staging/platform/artifacts.json` に保存する。
 アプリの REQUIRED_MIGRATIONS にある SQL を、公開済み Migrator の revision と Git blob で照合する。
 必須 migration が同一ならアプリだけを更新し、足りないときだけ Migrator を待つ。到着順によらず対象だけを drain し、
-初回の全成果物が揃った後は無関係な component を待たない。
+初回から無関係な component を待たず、準備できた参照だけを書き出す。
+Chart と全 image が揃った時点で組み合わせを lint/template する。初期構築中は HelmRelease を停止したままにする。
 同じ revision と digest は変更なし、祖先からの古い通知は据え置き、分岐・不明な履歴・同 revision の別 digest は失敗する。
 通知を受けるたび最新 main に対して計算し、push 競合では最新 main を読み直して最大5回再検証する。
 GitHub の workflow concurrency で異なる component の pending 通知を捨てない。
