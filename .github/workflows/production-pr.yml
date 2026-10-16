@@ -12,8 +12,6 @@ concurrency:
 jobs:
   propose:
     runs-on: ubuntu-latest
-    env:
-      MISE_AUTO_INSTALL: "0"
     steps:
       - uses: actions/create-github-app-token@v3.3.0
         id: update
@@ -26,10 +24,9 @@ jobs:
         with:
           ref: main
           persist-credentials: false
-      - uses: jdx/mise-action@v5.0.1
+      - uses: AnvilSaba/platform/.github/actions/setup-mise@main
         with:
-          minimum_release_age: 7d
-          install_args: gh
+          install-args: gh
       - name: Open PR if absent
         env:
           GH_TOKEN: ${{ steps.update.outputs.token }}
