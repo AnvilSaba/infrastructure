@@ -226,7 +226,7 @@ fn hash(bytes: &[u8]) -> String {
     format!("sha256:{:x}", Sha256::digest(bytes))
 }
 
-// Only fixed GHCR URLs receive registry credentials.
+// Public GHCR artifacts use anonymous pull tokens.
 fn registry(input: &Artifact) -> Result<(Artifact, Option<Vec<u8>>)> {
     ensure!(input.repository == repository(&input.component)?, "公開先が不正です");
     let client = Client::builder().timeout(Duration::from_secs(60)).build()?;
@@ -234,18 +234,12 @@ fn registry(input: &Artifact) -> Result<(Artifact, Option<Vec<u8>>)> {
         .repository
         .strip_prefix("ghcr.io/")
         .context("GHCR ではありません")?;
-    let mut auth = client
+    let token: Value = client
         .get("https://ghcr.io/token")
-        .query(&[("service", "ghcr.io"), ("scope", &format!("repository:{repo}:pull"))]);
-    if let Ok(token) = env::var("REGISTRY_TOKEN")
-        && !token.is_empty()
-    {
-        auth = auth.basic_auth(
-            env::var("REGISTRY_USER").unwrap_or_else(|_| "gitops".into()),
-            Some(token),
-        );
-    }
-    let token: Value = auth.send()?.error_for_status()?.json()?;
+        .query(&[("service", "ghcr.io"), ("scope", &format!("repository:{repo}:pull"))])
+        .send()?
+        .error_for_status()?
+        .json()?;
     let token = token["token"].as_str().context("GHCR token がありません")?;
     resolve_artifact(input, |path| {
         Ok(client.get(format!("https://ghcr.io/v2/{repo}/{path}")).bearer_auth(token)

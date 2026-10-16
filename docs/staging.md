@@ -51,15 +51,16 @@ GitHub の workflow concurrency で異なる component の pending 通知を捨�
   `GITOPS_UPDATE_APP_ID`、`GITOPS_UPDATE_APP_PRIVATE_KEY`。
 - infrastructure の source 検証用 App: platform のみ、Contents: read。
   `GITOPS_READ_APP_ID`、`GITOPS_READ_APP_PRIVATE_KEY`。
-- private GHCR を使う場合は用途を読み取りに限定した `GITOPS_REGISTRY_READ_TOKEN` と `GITOPS_REGISTRY_USER` を設定する。
-  公開 package は匿名で読めるため省略できる。
+
+GHCR package は Public を前提とし、匿名で取得する。読み取り用の Secret や variable は設定しない。
+Registry API の匿名 pull token は処理内で取得する。
 
 通知用 App にも書き込み権限がある。更新用と秘密鍵を共用せず、インストール対象を限定する。
 生成 commit/PR は App token で作り、通常の CI が起動する経路にする。
 
 ## 受け入れ時の確認
 
-専用資格情報、App installation/権限、branch protection、package 閲覧権限は未設定・未検証。
+専用資格情報、App installation/権限、branch protection、package の公開状態は未設定・未検証。
 staging の鍵の保管・暗号化 Secret・外部設定を完了させてから、実通知で生成 commit と GitOps CI の起動、
 Flux source/Kustomization の Ready、復号、Cluster/DatabaseRole、HelmRelease の Ready、
 Bot/紐付け/Public API/Tunnel の疎通を確認する。描画・commit 成功だけでは実反映完了にしない。

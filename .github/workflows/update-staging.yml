@@ -45,8 +45,6 @@ jobs:
       - name: Validate and commit against latest main
         env:
           PAYLOAD: ${{ toJSON(github.event.client_payload) }}
-          REGISTRY_TOKEN: ${{ secrets.GITOPS_REGISTRY_READ_TOKEN }}
-          REGISTRY_USER: ${{ vars.GITOPS_REGISTRY_USER }}
         run: |
           printf '%s' "$PAYLOAD" > "$RUNNER_TEMP/notification.json"
           git config user.name 'gitops-update[bot]'
