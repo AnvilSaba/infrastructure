@@ -18,6 +18,9 @@ mise run fmt:check
 ## ドキュメント
 
 - [開発環境と確認手順](docs/development.md)
+- [クラスタの構築とデプロイ](docs/deployment.md)
+- [Flux の初期構築](docs/flux.md)
+- [Secret / Config の準備と運用](docs/secret-config.md)
 
 ## ライセンス
 

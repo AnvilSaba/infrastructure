@@ -61,6 +61,10 @@ platform には GHCR への公開に必要な通常の Actions 権限だけを�
 
 ## 既存環境の引き継ぎ
 
+準備中の GitOps 構成は未デプロイと確認されたため、platform の重複定義は初期構築前に削除する。
+k3s 設定と運用手順も infrastructure に集約し、両環境は infrastructure を管理元として構築する。
+既存の source が稼働している場合に限り、以下の引き継ぎ手順を適用する。
+
 両環境の desired state と Flux 定義を準備してから、Flux の `GitRepository` と各 `Kustomization.spec.path` を新しいリポジトリへ切り替える。
 切り替えでは既存 resource と新しい定義の対応を確認し、Flux が同一 resource の管理を継続できるようにする。
 既存 resource の識別情報と管理関係を維持し、旧定義の削除による prune と、新旧の同期による競合を避ける順序で移行する。
