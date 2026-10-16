@@ -52,6 +52,8 @@ Migrator を固定するときは filterTags を既存の完全 SHA タグへ変
 自動追従を再開するときは policy の範囲を戻す。
 
 Flux は毎回 main から更新ブランチを作り直すため、`automation/production` を手作業で編集しない。
+production の controller には `GitAllBranchReferences=false` を設定し、既存ブランチの先端を再利用させない。
+[採用版 Flux の動作](https://github.com/fluxcd/image-automation-controller/blob/v1.2.5/internal/source/git.go)に合わせた設定である。
 PR の自動作成に失敗した場合は、ブランチの差分を確認したうえで workflow_dispatch から再実行できる。
 
 ## 未確認事項
