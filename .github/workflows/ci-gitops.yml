@@ -1,0 +1,17 @@
+# This workflow is managed by gh actions-lock.
+name: GitOps CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: AnvilSaba/platform/.github/actions/setup-mise@main
+        with:
+          install-args: rust aqua:kubernetes-sigs/kustomize
+      - run: mise run check

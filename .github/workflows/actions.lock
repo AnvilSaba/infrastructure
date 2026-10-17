@@ -5,13 +5,23 @@ version: 'v0.0.2'
 workflows:
     '.github/workflows/ci-format.yml':
         - 'actions/checkout@v7.0.1'
-        - 'jdx/mise-action@v5.0.1'
+        - 'anvilsaba/platform@main'
+    '.github/workflows/ci-gitops.yml':
+        - 'actions/checkout@v7.0.1'
+        - 'anvilsaba/platform@main'
 dependencies:
     'actions/checkout@v7.0.1':
         ref: 'v7.0.1'
         commit: 'sha1-3d3c42e5aac5ba805825da76410c181273ba90b1'
         owner_id: 44036562
         repo_id: 197814629
+    'anvilsaba/platform@main':
+        ref: 'main'
+        commit: 'sha1-b978061b79007fdaf27940d8a589f1bd5d586973'
+        owner_id: 321761991
+        repo_id: 1348775435
+        uses:
+            - 'jdx/mise-action@v5.0.1'
     'jdx/mise-action@v5.0.1':
         ref: 'v5.0.1'
         commit: 'sha1-7a4e45a543138629540c9a1616d08632b893e492'

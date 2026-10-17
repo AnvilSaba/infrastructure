@@ -1,0 +1,39 @@
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: platform-bot
+spec:
+  image: ghcr.io/anvilsaba/bot
+  interval: 1m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: platform-mc-link-server
+spec:
+  image: ghcr.io/anvilsaba/mc-link-server
+  interval: 1m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: platform-public-api
+spec:
+  image: ghcr.io/anvilsaba/public-api
+  interval: 1m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: platform-db-migrator
+spec:
+  image: ghcr.io/anvilsaba/db-migrator
+  interval: 1m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: platform-chart
+spec:
+  image: ghcr.io/anvilsaba/charts/platform
+  interval: 1m

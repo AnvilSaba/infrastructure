@@ -4,6 +4,7 @@ resources:
   - source.yaml
   - sync.yaml
   - controllers.yaml
+  - image-automation.yaml
   - config.yaml
   - database.yaml
   - apps.yaml

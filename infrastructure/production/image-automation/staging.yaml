@@ -1,0 +1,108 @@
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: staging-bot
+  labels:
+    gitops.anvilsaba.dev/environment: staging
+spec:
+  imageRepositoryRef:
+    name: platform-bot
+  filterTags:
+    pattern: ^main$
+  policy:
+    alphabetical: {}
+  digestReflectionPolicy: Always
+  interval: 1m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: staging-mc-link-server
+  labels:
+    gitops.anvilsaba.dev/environment: staging
+spec:
+  imageRepositoryRef:
+    name: platform-mc-link-server
+  filterTags:
+    pattern: ^main$
+  policy:
+    alphabetical: {}
+  digestReflectionPolicy: Always
+  interval: 1m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: staging-public-api
+  labels:
+    gitops.anvilsaba.dev/environment: staging
+spec:
+  imageRepositoryRef:
+    name: platform-public-api
+  filterTags:
+    pattern: ^main$
+  policy:
+    alphabetical: {}
+  digestReflectionPolicy: Always
+  interval: 1m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: staging-db-migrator
+  labels:
+    gitops.anvilsaba.dev/environment: staging
+spec:
+  imageRepositoryRef:
+    name: platform-db-migrator
+  filterTags:
+    pattern: ^main$
+  policy:
+    alphabetical: {}
+  digestReflectionPolicy: Always
+  interval: 1m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: staging-chart
+  labels:
+    gitops.anvilsaba.dev/environment: staging
+spec:
+  imageRepositoryRef:
+    name: platform-chart
+  filterTags:
+    pattern: ^main$
+  policy:
+    alphabetical: {}
+  digestReflectionPolicy: Always
+  interval: 1m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: platform-staging
+spec:
+  # source 移管と App・公開チャネルの準備後に有効化する。
+  suspend: true
+  interval: 1m
+  sourceRef:
+    kind: GitRepository
+    name: platform-image-updates
+  policySelector:
+    matchLabels:
+      gitops.anvilsaba.dev/environment: staging
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        name: gitops-update[bot]
+        email: gitops-update[bot]@users.noreply.github.com
+      messageTemplate: "chore(staging): 公開済み成果物を更新する"
+    push:
+      branch: main
+  update:
+    path: ./apps/staging/platform
+    strategy: Setters
