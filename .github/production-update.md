@@ -4,6 +4,6 @@ Parent: AnvilSaba/infrastructure#1
 Implements: AnvilSaba/infrastructure#5
 Depends on: AnvilSaba/infrastructure#2, AnvilSaba/infrastructure#3, AnvilSaba/infrastructure#4
 
-source 移管の完了、CI、アプリと Migrator の組み合わせ、SQL の後方互換性を確認してください。
+CI、アプリと Migrator の組み合わせ、SQL の後方互換性を確認してください。
 staging が停止中の場合、この更新は動作確認済みとは限りません。
 Flux が更新するブランチなので、手動修正や切り戻しは別ブランチの PR で行ってください。

@@ -31,9 +31,9 @@ workflow は自リポジトリが既定のため owner / repositories を列挙�
 App token を使うことで生成 PR の CI を自動起動する。
 GHCR は Public を匿名で読み取り、platform の通知用 App / source 読み取り用 App は不要。
 
-source 移管と新版の公開を同時に行わない。
+準備中の GitOps 構成は未デプロイであり、platform の旧 source の切り替えは不要。
 初期の ImageUpdateAutomation は suspend: true とし、既存 Chart/image と HelmRelease の停止状態を維持する。
-Issue #6 の source 移管が完了してから、digest 対応 Chart の安定版を公開する。
+初期構築では digest 対応 Chart の安定版と各 image の公開を先に完了する。
 Chart の policy は最初の digest 対応 release に合わせて `>=1.0.1` とし、旧版 `1.0.0` を候補にしない。
 各 ImagePolicy の Ready を確認したら、`production.yaml` の `platform-production` の suspend を Git で解除する。
 初回 PR では Chart と全 image の digest が埋まり、意図した版を示していることを確認する。

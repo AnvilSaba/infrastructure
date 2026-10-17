@@ -1,7 +1,8 @@
 # production 移管先の対応
 
 移管元は platform の `feature/gitops-deployment`、準備時点の commit は `bdfb2ec`。
-この変更は移管先の準備だけで、稼働クラスタの source・停止設定・配置版は変更しない。
+準備中の GitOps 構成は未デプロイと確認されたため、platform 側の重複定義は削除した。
+稼働クラスタの source 切り替えは実施せず、停止設定と配置版は維持する。
 
 | 移管元 (platform)                     | 移管先 (infrastructure)                                     |
 | ------------------------------------- | ----------------------------------------------------------- |
@@ -37,5 +38,7 @@ Chart 1.0.0 と既存 values も描画して比較する。
 resource UID、Helm release、停止設定、DB/PVC を再確認する。
 今回の準備時点のコピーを、そのまま最新状態だと扱わない。
 source の引き継ぎと digest 対応 Chart/image の導入は別段階とする。
-旧定義・旧更新経路は Issue #6 の引き継ぎ確認まで維持する。
-production 更新 PR は source 移管が完了するまで merge しない。
+上記の稼働環境に対する切り替え確認は、既存の source がある場合に限る。
+今回の新規構築では [初期構築手順](flux.md)に従う。
+platform からは重複する desired state・SOPS ルール・運用手順を除去し、
+k3s 設定、Secret の運用、DB 移行手順と検証 SQL は infrastructure に集約した。

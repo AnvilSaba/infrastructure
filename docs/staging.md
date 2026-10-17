@@ -65,7 +65,7 @@ mise exec -- kubectl --context <production-context> -n flux-system create secret
 [Flux の GitHub App 設定](https://fluxcd.io/flux/components/source/gitrepositories/#github)に従う。
 App の push で通常の CI が起動するようにし、main の保護設定では staging の参照更新を許可する。
 
-source 移管後、GitRepository `platform-image-updates` と各 ImagePolicy の Ready を確認する。
+初期構築後、GitRepository `platform-image-updates` と各 ImagePolicy の Ready を確認する。
 `staging.yaml` の ImageUpdateAutomation `platform-staging` の suspend を Git で解除する。
 初回の全 digest が埋まり、digest 対応済み Chart が反映されるまでは HelmRelease を停止したままにする。
 ImageUpdateAutomation の suspend と staging の HelmRelease の suspend は別の設定である。
@@ -77,4 +77,4 @@ App installation/資格情報、branch protection、実 package の公開チャ�
 staging の鍵の保管・暗号化 Secret・外部設定を完了してから、Flux の Git commit と CI、
 source/Kustomization の Ready、復号、Cluster/DatabaseRole、HelmRelease の Ready、
 Bot/紐付け/Public API/Tunnel の疎通を確認する。描画・commit 成功だけでは実反映完了にしない。
-production source の切り替えと旧定義の削除は Issue #6 で行う。
+未デプロイの platform 側の旧定義は削除済みであり、実クラスタへの初期構築は別途行う。
