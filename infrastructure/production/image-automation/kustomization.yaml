@@ -5,3 +5,4 @@ resources:
   - source.yaml
   - repositories.yaml
   - staging.yaml
+  - production.yaml

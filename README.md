@@ -22,3 +22,9 @@ mise run fmt:check
 ## ライセンス
 
 [MIT License](LICENSE) で公開しています。
+
+## GitOps の移管と更新
+
+- [production の移管先と対応関係](docs/production-transfer.md)
+- [独立した staging の構築と更新](docs/staging.md)
+- [production 更新 PR](docs/production-pr.md)

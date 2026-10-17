@@ -1,13 +1,17 @@
 bot:
   image:
-    tag: 4.0.0
+    tag: 4.0.0 # {"$imagepolicy": "flux-system:production-bot:tag"}
+    digest: "" # {"$imagepolicy": "flux-system:production-bot:digest"}
 mcLinkServer:
   image:
-    tag: 1.0.0
+    tag: 1.0.0 # {"$imagepolicy": "flux-system:production-mc-link-server:tag"}
+    digest: "" # {"$imagepolicy": "flux-system:production-mc-link-server:digest"}
 publicApi:
   image:
-    tag: 1.0.0
+    tag: 1.0.0 # {"$imagepolicy": "flux-system:production-public-api:tag"}
+    digest: "" # {"$imagepolicy": "flux-system:production-public-api:digest"}
 dbMigrator:
   enabled: true
   image:
-    tag: sha-c976d4a1950777fb05911dc9be7498cfc1c97549
+    tag: sha-c976d4a1950777fb05911dc9be7498cfc1c97549 # {"$imagepolicy": "flux-system:production-db-migrator:tag"}
+    digest: "" # {"$imagepolicy": "flux-system:production-db-migrator:digest"}
