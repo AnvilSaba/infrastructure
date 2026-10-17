@@ -7,10 +7,12 @@ production クラスタの Flux が、staging / production の成果物監視と
 
 1. platform の Release がアプリ・Migrator または Chart を GHCR に公開する。
 2. Flux の ImagePolicy がアプリと Chart の安定版 SemVer、Migrator の可変タグ `release` を検出する。
-3. ImageUpdateAutomation `platform-production` が main を基準に `apps/production/platform/` の参照を更新し、
-   `automation/production` ブランチへ push する。image と Chart は digest で固定する。
+3. ImageUpdateAutomation `platform-production` が `automation/production` ブランチの
+   `apps/production/platform/` の参照を更新する。ブランチがなければ main から作成し、
+   既存なら先端を再利用する。image と Chart は digest で固定し、変更がある場合だけ commit / push する。
 4. **Production update PR** workflow が一つの PR を作成する。既存の PR がある場合はその PR を使う。
 5. 人が CI、差分、staging の実行結果、アプリと Migrator の組み合わせ、SQL の後方互換性を確認して merge する。
+   merge 後は更新ブランチを削除し、次の候補を最新 main から作成できるようにする。
 6. production 側の Flux が main の変更を反映する。自動 merge や production の直接更新は行わない。
 
 アプリと Chart は独立して最新版を選ぶ。全成果物を同じ Git revision に揃える制約や、
@@ -51,9 +53,11 @@ Migrator を固定するときは filterTags を既存の完全 SHA タグへ変
 アプリ切り戻しでは Migrator の digest を維持する。DB のロールバックは行わず、旧アプリとの後方互換性を確認する。
 自動追従を再開するときは policy の範囲を戻す。
 
-Flux は毎回 main から更新ブランチを作り直すため、`automation/production` を手作業で編集しない。
-production の controller には `GitAllBranchReferences=false` を設定し、既存ブランチの先端を再利用させない。
-[採用版 Flux の動作](https://github.com/fluxcd/image-automation-controller/blob/v1.2.5/internal/source/git.go)に合わせた設定である。
+Flux は既存の更新ブランチを再利用する。`GitAllBranchReferences` は既定の true を使い、
+同じ候補での再同期では新しい commit / push を発生させない。
+[採用版 Flux の動作](https://github.com/fluxcd/image-automation-controller/blob/v1.2.5/internal/source/git.go)を参照する。
+main 側の変更は PR の merge 時に統合する。競合する場合は更新ブランチへ main を merge し、
+最新の CI と差分を再確認する。`automation/production` の成果物参照は手作業で編集しない。
 PR の自動作成に失敗した場合は、ブランチの差分を確認したうえで workflow_dispatch から再実行できる。
 
 ## 未確認事項
