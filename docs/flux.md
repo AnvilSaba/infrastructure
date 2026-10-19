@@ -1,12 +1,11 @@
 # Flux の初期構築
 
-クラスタ・環境別設定・配置対象は infrastructure を唯一の管理元にします。
-platform は成果物の公開までを担当します。
-準備中の GitOps 構成は未デプロイのため、platform の旧 source を稼働環境から切り替える作業は不要です。
+クラスタへの初回接続と、成果物の Git 自動更新に必要な認証を設定します。
+環境ごとの構築は [production](deployment.md) または [staging](staging.md) の手順に従ってください。
 
 ## 初回の接続
 
-対象クラスタの kubeconfig を選択し、リポジトリルートで実行します。
+対象クラスタの kubeconfig を選択し、リポジトリルートで実行します。同じクラスタで導入済みなら再導入しません。
 
 ```powershell
 mise exec -- kubectl apply --server-side -k infrastructure/base/controllers
@@ -16,29 +15,39 @@ mise exec -- kubectl -n flux-system rollout status deployment/kustomize-controll
 mise exec -- kubectl -n cnpg-system rollout status deployment/cnpg-controller-manager --timeout=5m
 ```
 
-[Secret の準備](secret-config.md)に従って production 用の復号鍵を配置し、入口を適用します。
+[Secret の手順](secret-config.md#flux-への鍵の配置)に従って復号鍵を配置し、対象環境の入口を適用します。次は production の例です。staging は `clusters/staging` を指定します。
 
 ```powershell
 mise exec -- kubectl apply --server-side -k clusters/production
 ```
 
-初期状態の config・DB・HelmRelease と ImageUpdateAutomation は停止したままです。
-Secret、外部サービス、DB の準備、Chart と全 image の digest を確認してから、
-config、DB、HelmRelease の順に Git の suspend を解除し、それぞれの Ready を確認します。
-production の DB 定義は既存 PostgreSQL からの import を含むため、既存 DB がある場合は
-[移行手順](cloudnativepg-migration.md)を確認します。空の DB を新規構築するときは、適用前に
-`infrastructure/production/database/kustomization.yaml` の import patch を外して base の initdb を使用します。
+Config・DB・HelmRelease と ImageUpdateAutomation の停止設定は維持します。
+停止設定の解除は環境ごとの構築手順に従います。既存 DB がある場合は [DB 移行手順](cloudnativepg-migration.md)へ進んでください。
 
-## 成果物の更新
+## Git 更新用 App
 
-production のクラスタが両環境の公開成果物を監視します。
-GitHub App の準備と staging の自動更新は [staging の手順](staging.md)、
-承認用 PR と production の有効化は [production 更新 PR](production-pr.md)を参照してください。
-staging 自体の Flux は独立して構築します。
+Flux が Git を読み取り、変更を push するための GitHub App を infrastructure にインストールし、Contents: write を付与します。
+production クラスタの `flux-system` に `gitops-update` Secret を作成します。
+`$gitopsAppId` に App ID、`$gitopsAppKeyPath` に秘密鍵ファイルのパスを設定します。秘密鍵は Git に登録しません。
+
+```powershell
+mise exec -- kubectl --context <production-context> -n flux-system create secret generic gitops-update `
+  --from-literal=githubAppID=$gitopsAppId `
+  --from-literal=githubAppInstallationOwner=AnvilSaba `
+  --from-file=githubAppPrivateKey=$gitopsAppKeyPath
+```
+
+main は PR 経由で保護し、App には staging の参照更新に必要な範囲で直接 push を許可します。
+`automation/production` への App の push / force-push も許可します。
+App の push で CI が起動することを確認してください。
+
+PR 作成用の認証は [production 更新 PR](production-pr.md#pr-作成用-app)で設定します。
+
+自動更新の有効化は [staging](staging.md#自動更新の有効化) と [production](production-pr.md#初回有効化) の手順に従ってください。
 
 ## 反映の確認
 
-対象 Kustomization の `status.lastAppliedRevision` が今回のコミットを示すことを確認します。
+対象 Kustomization の `status.lastAppliedRevision` が対象コミットを示すことを確認します。
 HelmRelease では `status.observedGeneration` が `metadata.generation` に追いつき、
 Ready と配置した image の digest が意図した値になることを確認します。
-描画や Git 更新だけではデプロイ完了とは扱いません。
+Git の更新や描画だけではデプロイ完了とは扱いません。各環境の手順に従って疎通も確認します。

@@ -83,6 +83,9 @@ mise exec -- kubectl exec -i -n anvilsaba postgres-0 -- psql -XqAt -U platform_a
 ## 3. DB 専用 Secret の準備
 
 `bot-database`、`mc-link-server-database`、`public-api-database`、`db-migrator-database` は旧パスワードの実値を維持した DB 専用 Secret です。旧 DB の `postgres` Secret も維持します。
+旧 StatefulSet の `postgres` Secret を更新しても DB 内のパスワードは変わらないため、移行時には変更しません。
+
+登録済みの暗号化 Secret と通常設定を確認します。古い Bot 設定の `bot.token` は Bot Secret の `token`、`auth.keyword` は `authKeyword` へ移し、通常設定から削除します。旧 Bot イメージは新しい ConfigMap では起動できないため、対応するイメージ・Chart・設定を一緒に切り替えます。切り戻しにも対応する旧設定を使います。
 
 書き込み停止とバックアップの完了後に、`clusters/production/config.yaml` の `spec.suspend` を Git で `false` に変更します。旧 Bot Secret の DB キーはこの同期で取り除かれるため、アプリを停止したまま進めます。
 
@@ -146,9 +149,15 @@ Git 変更直後は前回の Ready が残ることがあります。`mise exec -
 
 各アプリのログ、Discord 連携、リンクコード発行 / 連携 / 解除、`/whitelist.json` と DB の identity 採番を確認します。必要な停止前の replica 数が 1 以外なら元の値に戻します。検証後に自動デプロイ・同期を再開します。
 
+切り替えを確認したら、旧 `bot-config` Secret と旧平文の Secret 原本を削除します。新しい `bot` ConfigMap と `bot` Secret は残します。切り戻し用の暗号化済みバックアップは保持します。
+
+```bash
+mise exec -- kubectl -n anvilsaba delete secret bot-config
+```
+
 ## 6. 切り戻しとデータ保持
 
-旧 DB への切り戻しでは、先に親の Flux Kustomization `platform`、`platform-config`・`platform-db`・`platform-db-roles`・`platform-apps` と HelmRelease `platform` を停止し、自動同期が旧 Secret や旧 Chart を上書きしないようにします。新 DB に書き込みを開始する前なら、アプリを停止したまま新 Cluster への接続を止め、バックアップした旧サービス用 Secret と keep 付きの旧 Chart / 値を再適用します。新しい DB 専用 Secret は旧 Chart が参照しません。`postgres` の起動と接続を確認してから旧アプリを再開します。Helm rollback だけでは外部管理の Secret は戻りません。
+旧 DB への切り戻しでは先に親の Flux Kustomization `platform`、`platform-config`・`platform-db`・`platform-db-roles`・`platform-apps` と HelmRelease `platform` を停止し、自動同期が旧 Secret や旧 Chart を上書きしないようにします。新 DB に書き込みを開始する前なら、アプリを停止したまま新 Cluster への接続を止め、バックアップした旧サービス用 Secret と keep 付きの旧 Chart / 値を再適用します。新しい DB 専用 Secret は旧 Chart が参照しません。`postgres` の起動と接続を確認してから旧アプリを再開します。Helm rollback だけでは外部管理の Secret は戻りません。
 
 **新 DB への書き込み開始後は旧 DB が古くなるため、単純な接続先の切り戻しではデータを失います。** 再停止して新 DB のバックアップと差分の取り込み方針を決めてください。検証と保持期間が終わるまで旧 PVC・PV・バックアップを削除しません。
 

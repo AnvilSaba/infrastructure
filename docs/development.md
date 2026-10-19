@@ -10,17 +10,12 @@ mise install
 mise tasks ls
 ```
 
-GitHub CLI、Node.js、Helm、kubectl、SOPS、age、Kustomize、Oxfmt のバージョンを `mise.toml` で固定しています。
-Node.js は Oxfmt の実行用です。
-新しいリリースの導入には7日間の待機期間を設けています。
-
 ツールは `mise run <タスク名>` または `mise exec -- <コマンド>` で実行します。
 Git は直接実行できます。エージェントが `gh` を実行する場合は、サンドボックス外で実行します。
 
 ## VS Code
 
 推奨拡張機能の Oxc をインストールしてください。
-`.vscode/settings.json` で保存時の整形と2スペースのインデントを設定しています。
 
 ## 整形
 
