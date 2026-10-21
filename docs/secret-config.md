@@ -8,21 +8,16 @@ Git 更新用 App の Secret は環境別の Secret と分け、[共通基盤の
 
 ## 設定の更新
 
-production・staging・共通基盤で使う1つの PQ 秘密鍵を指定します。
-
-```powershell
-$ageKeyFile = Join-Path $env:USERPROFILE '.config/sops/age/keys-pq.txt'
-$env:SOPS_AGE_KEY_FILE = $ageKeyFile
-```
+[`mise.local.example.toml`](../mise.local.example.toml) のコメントに従って `mise.local.toml` を設定します。
 
 通常設定を変更するには、`config/<環境>/bot.toml` と `apps/<環境>/platform/environment-values.yaml` を編集します。Token やパスワードは追加しません。
-Secret は SOPS のエディターで更新します。
+Secret は次のコマンドで編集します。
 
 ```powershell
-mise exec -- sops edit config/production/secrets/bot.sops.yaml
+mise run sops:edit config/production/secrets/bot.sops.yaml
 ```
 
-必要なら `$env:SOPS_EDITOR = 'code --wait'` などでエディターを指定します。暗号文・SOPS メタデータ・平文の名前や namespace を通常のエディターで直接変更しません。
+編集を終えたら保存して終了します。暗号文・SOPS メタデータ・名前や namespace の変更にも、上記のタスクを使います。
 
 Git へ反映すると Flux が同期します。ConfigMap と環境変数の Secret を更新しても Pod は再起動しないため、更新した設定を使うワークロードを再起動します。
 
@@ -56,7 +51,7 @@ DB パスワードを更新する場合は、対応するアプリを先に停�
 
 DB 専用 Secret の `username` はサンプルに従い、`password` に対象環境の値を設定します。DB 専用 Secret に秘密項目を追加するときは、`.sops.yaml` の暗号化対象も更新します。
 
-次は staging の Bot Secret を作成する例です。既存ファイルには実行しません。`SOPS_AGE_KEY_FILE` に共通の PQ 秘密鍵のパスを設定してから実行します。
+次は staging の Bot Secret を新規作成する例です。既存の Secret は「設定の更新」に従って編集します。
 
 ```powershell
 $secretName = 'bot'
@@ -64,7 +59,7 @@ $secretPath = "config/staging/secrets/$secretName.sops.yaml"
 Get-Content "config/samples/$secretName.sample.yaml" -Raw |
   mise exec -- sops encrypt --filename-override $secretPath --input-type yaml --output-type yaml --output $secretPath
 if ($LASTEXITCODE -ne 0) { throw 'SOPS 暗号化に失敗しました' }
-mise exec -- sops edit $secretPath
+mise run sops:edit $secretPath
 ```
 
 必要な Secret ごとに実行し、生成したファイルを `config/<環境>/secrets/kustomization.yaml` の `resources` に追加します。
@@ -79,7 +74,7 @@ Git に追加する前に、必要な Secret が登録され、暗号化対象�
 
 ### 復号の確認
 
-鍵を管理する本人が `SOPS_AGE_KEY_FILE` に秘密鍵のパスを指定し、次を実行します。復号結果は表示・保存しません。
+次のコマンドで各 Secret の復号を確認します。
 
 ```powershell
 Get-ChildItem config/production/secrets,config/staging/secrets,config/shared/secrets -Filter '*.sops.yaml' |
@@ -94,6 +89,7 @@ Get-ChildItem config/production/secrets,config/staging/secrets,config/shared/sec
 [Flux の初回接続](flux.md#初回の接続)で controller を導入したあと、対象クラスタに鍵を配置します。同じクラスタでは一度だけ設定し、production・staging・共通基盤で共有します。
 
 ```powershell
+$ageKeyFile = mise exec -- pwsh -NoProfile -Command '$env:SOPS_AGE_KEY_FILE'
 mise exec -- kubectl -n flux-system create secret generic sops-age `
   --from-file=identity.agekey=$ageKeyFile --dry-run=client -o yaml |
   mise exec -- kubectl apply -f -

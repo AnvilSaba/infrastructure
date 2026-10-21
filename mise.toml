@@ -9,6 +9,7 @@ node = "24.21.0"
 helm = "4.2.4"
 kubectl = "1.37.1"
 "aqua:getsops/sops" = "3.13.3"
+"aqua:helix-editor/helix" = "25.07.1"
 "aqua:FiloSottile/age" = "1.3.2"
 "aqua:kubernetes-sigs/kustomize" = "5.8.2"
 "npm:oxfmt" = "0.71.0"
@@ -27,6 +28,14 @@ run = ["mise exec -- rustfmt --edition 2024 --check scripts/check.rs", "mise exe
 [tasks.check]
 description = "全 Kustomize ルートを探索して描画する"
 run = "mise exec -- cargo -Zscript scripts/check.rs"
+
+[tasks."sops:edit"]
+description = "引数で指定した Secret を Helix で編集する"
+usage = 'arg "<file>" help="編集する SOPS ファイル"'
+env.SOPS_AGE_KEY_FILE = { required = true }
+env.SOPS_EDITOR = "hx"
+raw = true
+run = 'sops edit "{{ usage.file }}"'
 
 [tasks."kube:tunnel"]
 description = "Kubernetes API への SSH ポートフォワーディングを行う"

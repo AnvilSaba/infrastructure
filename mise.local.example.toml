@@ -7,3 +7,9 @@ KUBE_SSH_HOST = "cluster-host"
 KUBECONFIG = "{{ env.USERPROFILE }}/.kube/anvilsaba.yaml"
 # Linux
 # KUBECONFIG = "{{ env.HOME }}/.kube/anvilsaba.yaml"
+
+# SOPS で使う PQ 秘密鍵のパス。鍵本体は Git 管理外で保管します。
+# Windows
+SOPS_AGE_KEY_FILE = "{{ env.USERPROFILE }}/.config/sops/age/keys-pq.txt"
+# Linux
+# SOPS_AGE_KEY_FILE = "{{ env.HOME }}/.config/sops/age/keys-pq.txt"

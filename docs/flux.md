@@ -48,11 +48,7 @@ App ID と発行した秘密鍵ファイルを用意します。秘密鍵ファ�
 ### 復号鍵
 
 production・staging・共通基盤で1つの PQ 鍵を使います。新しい管理端末ではバックアップから復元します。
-
-```powershell
-$ageKeyFile = Join-Path $env:USERPROFILE '.config/sops/age/keys-pq.txt'
-$env:SOPS_AGE_KEY_FILE = $ageKeyFile
-```
+[Secret の設定手順](secret-config.md#設定の更新)に従って `mise.local.toml` を設定します。
 
 秘密鍵は本人だけが読める権限にし、Git 管理外にバックアップします。
 controller の導入後、[Flux への鍵の配置](secret-config.md#flux-への鍵の配置)に従って `sops-age` Secret を配置します。同じクラスタでは一度だけ実行します。
@@ -81,7 +77,11 @@ Remove-Variable gitopsSecret
 `gitops-update` Secret をすでに手動で作成している場合は、同じ資格情報を暗号化して登録し、Flux が配置する前に既存の Secret を削除しません。
 App が未作成の間は `resources: []` を維持します。この間は Git の自動更新を利用できません。
 
-更新時は上記の `SOPS_AGE_KEY_FILE` を指定し、`mise exec -- sops edit config/shared/secrets/gitops-update.sops.yaml` で編集します。
+更新時は次のコマンドで編集します。
+
+```powershell
+mise run sops:edit config/shared/secrets/gitops-update.sops.yaml
+```
 
 main は PR 経由で保護し、App には staging の参照更新に必要な範囲で直接 push を許可します。
 `automation/production` への App の push / force-push も許可します。
