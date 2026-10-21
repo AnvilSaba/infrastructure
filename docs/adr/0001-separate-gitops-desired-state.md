@@ -16,14 +16,16 @@ Chart ソースは `platform` に残し、配置対象の Chart と image の参
 
 namespace は production が `anvilsaba`、staging が `anvilsaba-staging` を使う。
 同じクラスタではノード、Flux controller、CNPG Operator を共有する。共通 controller・Operator・成果物の参照元は `clusters/shared` から管理する。DB・アプリ・更新ポリシーは各環境の入口で管理し、staging は共通基盤と staging の入口だけで構築できる。
-staging の DB は共通 Operator に依存し、DB・PVC・Secret・SOPS 復号鍵・Discord Bot・Cloudflare Tunnel は環境ごとに分ける。
+staging の DB は共通 Operator に依存し、DB・PVC・アプリ用 Secret・Discord Bot・Cloudflare Tunnel は環境ごとに分ける。
+SOPS の暗号化には全環境で同じ PQ 鍵を使う。
 環境ごとにディレクトリと Flux の入口を分け、staging にはコンテナの既定のリソース制限と ResourceQuota を設定する。namespace を分けても環境間通信やノード障害の影響は分離されない。production のデータや資格情報は staging に使用しない。
 
 ## 成果物の公開と配置の更新
 
 同じクラスタの Flux が両環境の成果物の検出、Git の自動更新、デプロイを行う。Kustomization と配置設定は環境ごとに分ける。
 staging を別クラスタに配置する場合も、そのクラスタに共通基盤と staging の入口を適用する。同じ環境の Git 自動更新は一つのクラスタだけで有効にする。
-staging のワークロードを停止していても、Git の自動更新は継続する。staging の SOPS 復号鍵は配置先クラスタの `flux-system` に専用の Secret `sops-age-staging` として配置する。
+staging のワークロードを停止していても、Git の自動更新は継続する。
+SOPS 復号鍵は全環境で共有し、配置先クラスタの `flux-system` に Secret `sops-age` として配置する。
 
 staging は application image・db-migrator・OCI Chart の可変タグ `main` の digest を追跡し、`apps/staging/platform/` の参照を `main` ブランチへ直接 commit する。
 並び替え用の時刻・連番タグ、公開通知、pending 状態、Git の祖先判定、アプリと Migrator の事前互換性判定は設けない。

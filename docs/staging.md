@@ -10,7 +10,7 @@ production のデータや資格情報は使用しない。
 | ---------------------------------- | -------------------- | ---------------------------- |
 | namespace                          | `anvilsaba`          | `anvilsaba-staging`          |
 | Flux の入口                        | `platform`           | `staging-platform`           |
-| SOPS 復号鍵の Secret               | `sops-age`           | `sops-age-staging`           |
+| SOPS 復号鍵の Secret               | `sops-age`           | `sops-age`                   |
 | DB の StorageClass                 | `platform-db-retain` | `platform-staging-db-retain` |
 | MC Link Server の外向き TCP ポート | `25600`              | `25601`                      |
 
@@ -34,7 +34,7 @@ namespace の分離は通信の遮断を意味しない。現在は環境間通�
 
 1. 対象クラスタの kubeconfig を選び、`mise exec -- kubectl config current-context` で接続先を確認する。新しいクラスタでは、公開済み image に対応するノードで [k3s を準備](deployment.md#12-k3s)し、local-path provisioner が利用できることを確認する。
 2. [Flux の初回接続](flux.md#初回の接続)に従い、共通基盤の `clusters/shared` を適用する。`flux-system` の Kustomization `flux-controllers` と `cnpg-operator` が Ready であることを確認する。
-3. [新規環境の Secret 準備](secret-config.md#新規環境の準備)に従い、staging 専用の鍵と Secret、通常設定を用意する。既存の暗号化済み Secret と鍵は再利用する。`flux-system` に復号鍵を `sops-age-staging` として追加する。
+3. [新規環境の Secret 準備](secret-config.md#新規環境の準備)に従い、staging 専用の Secret と通常設定を用意する。全環境で共通の PQ 鍵を使い、復号鍵を格納した Secret `sops-age` が `flux-system` に配置済みであることを確認する。
 4. [自動更新の設定](#自動更新の設定)に従い、Git 更新用 App の認証を配置する。
 5. 配置設定を `infrastructure/main` に反映してから、初回のみ `mise exec -- kubectl apply --server-side -k clusters/staging` で staging の Flux の入口を追加する。以降は Git から同期される。
 
