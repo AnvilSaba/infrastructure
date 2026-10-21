@@ -55,22 +55,19 @@ controller の導入後、[Flux への鍵の配置](secret-config.md#flux-への
 
 ### App の Secret の登録
 
-`$gitopsAppId` に App ID、`$gitopsAppKeyPath` に Git 管理外の秘密鍵ファイルのパスを設定します。
-次のコマンドは、暗号化済みファイルがまだない場合にだけ実行します。平文の Secret はファイルへ保存しません。
+[`gitops-update.sample.yaml`](../config/samples/gitops-update.sample.yaml) から暗号化済みファイルを作り、SOPS のエディターで実値を入力します。サンプル自体には実値を書き込みません。
+次のコマンドは、暗号化済みファイルがまだない場合にだけ実行します。
 
 ```powershell
 $secretPath = 'config/shared/secrets/gitops-update.sops.yaml'
 if (Test-Path $secretPath) { throw '既存の Secret は SOPS のエディターで更新してください' }
-$gitopsSecret = mise exec -- kubectl -n flux-system create secret generic gitops-update `
-  --from-literal=githubAppID=$gitopsAppId `
-  --from-literal=githubAppInstallationOwner=AnvilSaba `
-  --from-file=githubAppPrivateKey=$gitopsAppKeyPath --dry-run=client -o yaml
-if ($LASTEXITCODE -ne 0) { throw 'Secret の生成に失敗しました' }
-$gitopsSecret | mise exec -- sops encrypt --filename-override $secretPath `
-  --input-type yaml --output-type yaml --output $secretPath
+Get-Content 'config/samples/gitops-update.sample.yaml' -Raw |
+  mise exec -- sops encrypt --filename-override $secretPath --input-type yaml --output-type yaml --output $secretPath
 if ($LASTEXITCODE -ne 0) { throw 'SOPS 暗号化に失敗しました' }
-Remove-Variable gitopsSecret
+mise run sops:edit $secretPath
 ```
+
+エディターで `githubAppID` に App ID を文字列として入力し、`githubAppPrivateKey` の `|` 以下に秘密鍵ファイルの PEM 全文をインデントして貼り付けます。`githubAppInstallationOwner` は `AnvilSaba` のままにします。保存して終了すると再暗号化されます。
 
 生成したファイルを `config/shared/secrets/kustomization.yaml` の `resources` に追加します。
 暗号化済み Secret と設定を `infrastructure/main` に反映すると、Kustomization `infrastructure-config` が Secret を復号して配置します。
