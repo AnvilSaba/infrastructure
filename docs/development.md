@@ -13,6 +13,30 @@ mise tasks ls
 ツールは `mise run <タスク名>` または `mise exec -- <コマンド>` で実行します。
 Git は直接実行できます。エージェントが `gh` を実行する場合は、サンドボックス外で実行します。
 
+## SSH 経由のクラスタ操作
+
+`mise.local.example.toml` を元に `mise.local.toml` を設定します。
+[K3s の kubeconfig](https://docs.k3s.io/cluster-access) を `KUBECONFIG` で指定した場所に用意し、接続先を設定します。クラスタ名が `default` の場合は次を実行します。
+
+```sh
+mise exec -- kubectl config set-cluster default --server=https://127.0.0.1:16443
+```
+
+SSH ポートフォワーディングを開始します。
+
+```sh
+mise run kube:tunnel
+```
+
+別の端末からクラスタを操作します。
+
+```sh
+mise exec -- kubectl get nodes
+mise exec -- kubectl -n anvilsaba-staging get pods
+```
+
+操作が終わったら、ポートフォワーディングを実行している端末で Ctrl+C を押します。
+
 ## VS Code
 
 推奨拡張機能の Oxc をインストールしてください。

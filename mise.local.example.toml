@@ -1,0 +1,9 @@
+[env]
+# SSH の接続先。SSH config のエイリアスも指定できます。
+KUBE_SSH_HOST = "cluster-host"
+
+# kubeconfig の保存先。使う OS の例を選んでください。
+# Windows
+KUBECONFIG = "{{ env.USERPROFILE }}/.kube/anvilsaba.yaml"
+# Linux
+# KUBECONFIG = "{{ env.HOME }}/.kube/anvilsaba.yaml"
