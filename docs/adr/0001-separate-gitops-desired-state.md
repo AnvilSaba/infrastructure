@@ -10,20 +10,20 @@ status: accepted
 
 ## 環境別の構成
 
-Flux の入口を `clusters/{staging,production}/`、CloudNativePG などの基盤定義を `infrastructure/{base,staging,production}/`、アプリケーション定義を `apps/{base,staging,production}/platform/` に配置する。
+Flux の入口を `clusters/{shared,staging,production}/`、CloudNativePG などの基盤定義を `infrastructure/{base,staging,production}/`、アプリケーション定義を `apps/{base,staging,production}/platform/` に配置する。
 環境別の app config と暗号化済み Secret、および暗号化ルールの `.sops.yaml` も `infrastructure` が所有する。
 Chart ソースは `platform` に残し、配置対象の Chart と image の参照を `infrastructure` で管理する。
 
-staging と production は別 namespace に配置する。
-将来別サーバー・別クラスタへ配置できるよう、staging の構築・稼働は production の resource、DB、Secret、外部サービスの設定や稼働状態に依存させない。
-共通定義を利用する場合も、production の環境定義を参照元にせず、クラスタ共通基盤の準備に production の稼働を前提としない。
-SOPS の復号鍵も環境別に分け、production は既存鍵を維持し、staging は専用鍵を用意する。
+namespace は production が `anvilsaba`、staging が `anvilsaba-staging` を使う。
+同じクラスタではノード、Flux controller、CNPG Operator を共有する。共通 controller・Operator・成果物の参照元は `clusters/shared` から管理する。DB・アプリ・更新ポリシーは各環境の入口で管理し、staging は共通基盤と staging の入口だけで構築できる。
+staging の DB は共通 Operator に依存し、DB・PVC・Secret・SOPS 復号鍵・Discord Bot・Cloudflare Tunnel は環境ごとに分ける。
+環境ごとにディレクトリと Flux の入口を分け、staging にはコンテナの既定のリソース制限と ResourceQuota を設定する。namespace を分けても環境間通信やノード障害の影響は分離されない。production のデータや資格情報は staging に使用しない。
 
 ## 成果物の公開と配置の更新
 
-常時稼働する production クラスタに、両環境の image-reflector-controller と image-automation-controller、および更新用リソースを集約する。
-各環境へのデプロイは各クラスタの Flux が行う。staging が停止していても Git の更新は継続し、再起動時に最新の desired state を反映する。
-更新用クラスタに staging の kubeconfig や SOPS 秘密鍵を渡す必要はない。
+同じクラスタの Flux が両環境の成果物の検出、Git の自動更新、デプロイを行う。Kustomization と配置設定は環境ごとに分ける。
+staging を別クラスタに配置する場合も、そのクラスタに共通基盤と staging の入口を適用する。同じ環境の Git 自動更新は一つのクラスタだけで有効にする。
+staging のワークロードを停止していても、Git の自動更新は継続する。staging の SOPS 復号鍵は配置先クラスタの `flux-system` に専用の Secret `sops-age-staging` として配置する。
 
 staging は application image・db-migrator・OCI Chart の可変タグ `main` の digest を追跡し、`apps/staging/platform/` の参照を `main` ブランチへ直接 commit する。
 並び替え用の時刻・連番タグ、公開通知、pending 状態、Git の祖先判定、アプリと Migrator の事前互換性判定は設けない。
@@ -61,12 +61,10 @@ platform には GHCR への公開に必要な通常の Actions 権限だけを�
 
 ## 既存環境の引き継ぎ
 
-準備中の GitOps 構成は未デプロイと確認されたため、platform の重複定義は初期構築前に削除する。
-k3s 設定と運用手順も infrastructure に集約し、両環境は infrastructure を管理元として構築する。
 既存の source が稼働している場合に限り、以下の引き継ぎ手順を適用する。
 
 両環境の desired state と Flux 定義を準備してから、Flux の `GitRepository` と各 `Kustomization.spec.path` を新しいリポジトリへ切り替える。
 切り替えでは既存 resource と新しい定義の対応を確認し、Flux が同一 resource の管理を継続できるようにする。
 既存 resource の識別情報と管理関係を維持し、旧定義の削除による prune と、新旧の同期による競合を避ける順序で移行する。
-今回の移管には既存の停止設定の解除、配置バージョンの変更、DB の切り替えを含めず、既存環境の状態を引き継ぐ。
+管理元を切り替える際は、停止設定の解除、配置バージョンの変更、DB の切り替えを行わず、既存環境の状態を引き継ぐ。
 移行完了後は `infrastructure/main` を staging / production の desired state の正とする。

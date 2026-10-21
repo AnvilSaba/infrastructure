@@ -83,8 +83,6 @@ kind: ImageUpdateAutomation
 metadata:
   name: platform-staging
 spec:
-  # source 移管と App・公開チャネルの準備後に有効化する。
-  suspend: true
   interval: 1m
   sourceRef:
     kind: GitRepository

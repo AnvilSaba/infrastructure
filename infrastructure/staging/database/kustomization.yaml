@@ -5,6 +5,19 @@ resources:
   - ../../base/database
 patches:
   - target:
+      kind: Cluster
+      name: platform-db
+    patch: |-
+      - op: add
+        path: /spec/resources
+        value:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+  - target:
       kind: StorageClass
       name: platform-db-retain
     patch: |-

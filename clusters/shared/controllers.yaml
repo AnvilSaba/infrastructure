@@ -10,7 +10,7 @@ spec:
   deletionPolicy: Orphan
   sourceRef:
     kind: GitRepository
-    name: platform
+    name: infrastructure
   healthChecks:
     - apiVersion: apps/v1
       kind: Deployment

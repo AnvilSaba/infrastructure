@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: staging-container-defaults
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      default:
+        cpu: 250m
+        memory: 512Mi
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: staging-budget
+spec:
+  hard:
+    limits.cpu: "2"
+    limits.memory: 4Gi

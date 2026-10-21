@@ -4,8 +4,6 @@ metadata:
   name: staging-platform-db
   namespace: flux-system
 spec:
-  # staging の Secret と共通 Operator を準備してから新規 DB を作成する。
-  suspend: true
   interval: 5m
   path: ./infrastructure/staging/database
   prune: false
@@ -14,6 +12,7 @@ spec:
     kind: GitRepository
     name: staging-platform
   dependsOn:
+    - name: cnpg-operator
     - name: staging-platform-config
   healthChecks:
     - apiVersion: postgresql.cnpg.io/v1

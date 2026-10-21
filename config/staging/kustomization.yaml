@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: anvilsaba-staging
 resources:
   - namespace.yaml
+  - resource-budget.yaml
   - secrets
 configMapGenerator:
   - name: bot
