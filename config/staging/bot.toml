@@ -1,9 +1,6 @@
 [bot]
 owners = ["422735871410700308"]
 
-# Discord Bot Token は環境変数 DISCORD_BOT_TOKEN に設定する。
-# DB の接続先は DATABASE_URL、パスワードは DATABASE_PASSWORD に設定する。
-# 例: postgres://platform_bot@postgres:5432/platform
 
 [mcguildlink]
 guild_id = "1561819266620072067"
