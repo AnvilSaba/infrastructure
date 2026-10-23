@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 type: Opaque
 stringData:
-  githubAppID: REPLACE_WITH_APP_ID
+  githubAppID: "REPLACE_WITH_APP_ID"
   githubAppInstallationOwner: AnvilSaba
   githubAppPrivateKey: |
     REPLACE_WITH_PRIVATE_KEY_PEM
