@@ -1,0 +1,108 @@
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: production-bot
+  labels:
+    gitops.anvilsaba.dev/environment: production
+spec:
+  imageRepositoryRef:
+    name: platform-bot
+  filterTags:
+    pattern: ^v?[0-9]+\.[0-9]+\.[0-9]+$
+  policy:
+    semver:
+      range: ">=0.0.0"
+  digestReflectionPolicy: IfNotPresent
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: production-mc-link-server
+  labels:
+    gitops.anvilsaba.dev/environment: production
+spec:
+  imageRepositoryRef:
+    name: platform-mc-link-server
+  filterTags:
+    pattern: ^v?[0-9]+\.[0-9]+\.[0-9]+$
+  policy:
+    semver:
+      range: ">=0.0.0"
+  digestReflectionPolicy: IfNotPresent
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: production-public-api
+  labels:
+    gitops.anvilsaba.dev/environment: production
+spec:
+  imageRepositoryRef:
+    name: platform-public-api
+  filterTags:
+    pattern: ^v?[0-9]+\.[0-9]+\.[0-9]+$
+  policy:
+    semver:
+      range: ">=0.0.0"
+  digestReflectionPolicy: IfNotPresent
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: production-chart
+  labels:
+    gitops.anvilsaba.dev/environment: production
+spec:
+  imageRepositoryRef:
+    name: platform-chart
+  filterTags:
+    pattern: ^v?[0-9]+\.[0-9]+\.[0-9]+$
+  policy:
+    semver:
+      range: ">=1.0.1"
+  digestReflectionPolicy: IfNotPresent
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: production-db-migrator
+  labels:
+    gitops.anvilsaba.dev/environment: production
+spec:
+  imageRepositoryRef:
+    name: platform-db-migrator
+  filterTags:
+    pattern: ^release$
+  policy:
+    alphabetical: {}
+  digestReflectionPolicy: Always
+  interval: 1m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: platform-production
+spec:
+  # source 移管と digest 対応 Chart の公開後に有効化する。
+  suspend: true
+  interval: 1m
+  sourceRef:
+    kind: GitRepository
+    name: platform-image-updates
+  policySelector:
+    matchLabels:
+      gitops.anvilsaba.dev/environment: production
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        name: gitops-update[bot]
+        email: gitops-update[bot]@users.noreply.github.com
+      messageTemplate: "chore(production): 公開済み成果物の更新を提案する"
+    push:
+      branch: automation/production
+  update:
+    path: ./apps/production/platform
+    strategy: Setters

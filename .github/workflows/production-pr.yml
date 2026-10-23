@@ -1,0 +1,38 @@
+# This workflow is managed by gh actions-lock.
+name: Production update PR
+on:
+  push:
+    branches: [automation/production]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: production-update-pr
+  cancel-in-progress: false
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@v3.3.0
+        id: update
+        with:
+          app-id: ${{ vars.GITOPS_UPDATE_APP_ID }}
+          private-key: ${{ secrets.GITOPS_UPDATE_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: write
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: AnvilSaba/platform/.github/actions/setup-mise@main
+        with:
+          install-args: gh
+      - name: Open PR if absent
+        env:
+          GH_TOKEN: ${{ steps.update.outputs.token }}
+        run: |
+          count=$(mise exec -- gh pr list --base main --head automation/production --state open --json number --jq length)
+          if [ "$count" -eq 0 ]; then
+            mise exec -- gh pr create --base main --head automation/production \
+              --title 'chore(production): 公開済み成果物を更新する' --body-file .github/production-update.md
+          fi

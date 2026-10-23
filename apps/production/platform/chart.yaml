@@ -7,7 +7,8 @@ spec:
   interval: 5m
   url: oci://ghcr.io/anvilsaba/charts/platform
   ref:
-    tag: 1.0.0
+    tag: 1.0.0 # {"$imagepolicy": "flux-system:production-chart:tag"}
+    digest: "" # {"$imagepolicy": "flux-system:production-chart:digest"}
   layerSelector:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
