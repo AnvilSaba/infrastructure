@@ -19,7 +19,9 @@ mise run sops:edit config/production/secrets/bot.sops.yaml
 
 編集を終えたら保存して終了します。暗号文・SOPS メタデータ・名前や namespace の変更にも、上記のタスクを使います。
 
-Git へ反映すると Flux が同期します。ConfigMap と環境変数の Secret を更新しても Pod は再起動しないため、更新した設定を使うワークロードを再起動します。
+Git へ反映すると Flux が同期し、Bot は設定を自動で再読み込みして、結果をログに記録します。
+
+`bot.owners`、起動時の `message_cache` 収集設定、Token・DB 接続情報の変更には再起動が必要です。
 
 ```powershell
 mise exec -- kubectl -n anvilsaba rollout restart deployment/bot
