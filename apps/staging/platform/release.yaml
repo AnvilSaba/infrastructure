@@ -4,8 +4,6 @@ metadata:
   name: platform
   namespace: anvilsaba-staging
 spec:
-  # staging の DB、Secret、外部接続先、固定成果物を確認してから解除する。
-  suspend: true
   interval: 5m
   releaseName: platform
   targetNamespace: anvilsaba-staging

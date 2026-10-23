@@ -3,11 +3,12 @@ kind: Kustomization
 namespace: anvilsaba-staging
 resources:
   - namespace.yaml
+  - resource-budget.yaml
   - secrets
 configMapGenerator:
   - name: bot
     files:
       - config.toml=bot.toml
 generatorOptions:
-  # 別途 Helm が参照するため固定名にする。変更後は Bot を再起動する。
+  # 別途 Helm が参照するため固定名にする。
   disableNameSuffixHash: true

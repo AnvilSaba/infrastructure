@@ -1,80 +1,60 @@
 # staging の構築と自動更新
 
-staging は `anvilsaba-staging` namespace を使用する。Cluster 名は同じでも namespace が異なるため
-production の DB とは別物になる。StorageClass は `platform-staging-db-retain`、DB は新規 initdb とし、
-legacy import や production Secret は参照しない。アプリ・DB 用 Secret、Discord Bot、テスト用 guild、
-Cloudflare Tunnel と hostname を staging 専用に用意する。
+staging は共通基盤の `clusters/shared` と環境設定の `clusters/staging` だけで構築できる。production の構築や稼働は必要ない。
+Flux controller と CNPG Operator は共通基盤で管理する。同じクラスタではノードも共有し、DB・PVC・Secret・Discord Bot・テスト用 guild・Cloudflare Tunnel と hostname は環境ごとに分ける。
+production のデータや資格情報は使用しない。
+
+## 構成
+
+| 項目                               | production           | staging                      |
+| ---------------------------------- | -------------------- | ---------------------------- |
+| namespace                          | `anvilsaba`          | `anvilsaba-staging`          |
+| Flux の入口                        | `platform`           | `staging-platform`           |
+| SOPS 復号鍵の Secret               | `sops-age`           | `sops-age`                   |
+| DB の StorageClass                 | `platform-db-retain` | `platform-staging-db-retain` |
+| MC Link Server の外向き TCP ポート | `25600`              | `25601`                      |
+
+DB・Service・Helm release の名前が同じでも namespace は異なる。DB 接続先 `platform-db-rw` と Tunnel の転送先 `http://public-api:8080` は、それぞれの namespace 内で名前解決する。
+staging の Tunnel は staging の `cloudflared` のみに接続し、API の公開ホスト名は `api.staging.anvilsaba.org` にする。公開ルートを作る前に Cloudflare Access で保護する。
+
+ResourceQuota で staging 全体のコンテナの limit の合計を CPU 2 コア・メモリ 4 GiB に制限する。更新中の一時的な Pod と Migrator もこの上限に含む。Quota を超える Pod は作成されない。
+この設定はリソースの予約や、本番専用の CPU コアの確保を行うものではない。
+
+| 対象                       | CPU request | CPU limit | メモリ request | メモリ limit |
+| -------------------------- | ----------- | --------- | -------------- | ------------ |
+| 明示的な指定がないコンテナ | `100m`      | `250m`    | `128Mi`        | `512Mi`      |
+| DB                         | `100m`      | `500m`    | `256Mi`        | `1Gi`        |
+
+起動後に使用量・OOM・CPU throttling を確認し、必要に応じてこれらの初期値を調整する。
+
+namespace の分離は通信の遮断を意味しない。現在は環境間通信を制限する NetworkPolicy を設けていない。
+同じクラスタでは、ノードの障害、ディスク不足、共有 controller の障害が両環境に影響するため、起動前にノードの空き容量と既存 Pod の requests を確認する。
 
 ## 初期構築
 
-1. 対象クラスタの kubeconfig を明示的に選ぶ。別クラスタでは k3s と local-path provisioner を準備する。
-2. Flux と CNPG Operator を共通定義から導入する。同じクラスタで既に導入済みなら再導入しない。
-   `mise exec -- kubectl apply --server-side -k infrastructure/base/controllers`、
-   `mise exec -- kubectl apply --server-side -k infrastructure/base/operator` を使い、それぞれ rollout を確認する。
-   これらは production の同期定義や DB の稼働を要求しない。
-3. staging 専用 age 秘密鍵を安全な場所に保管する。今回ローカルで生成した `staging.agekey` は Git 対象外。
-   `.sops.yaml` の staging recipient だけが公開情報として記録される。
-   別の鍵に変える場合は recipient と暗号化済み Secret を一緒に更新する。
-4. `mise exec -- kubectl -n flux-system create secret generic sops-age-staging --from-file=age.agekey=staging.agekey`
-   で専用鍵を対象クラスタに配置する。production の `sops-age` は使用しない。
-5. `config/samples/` から staging 専用の値を設定した `*.plain.yaml` を作り、
-   `mise exec -- sops --encrypt --filename-override config/staging/secrets/bot.sops.yaml <入力>` のように暗号化する。
-   `*-database` の username/password はサンプルに従う。生成した `*.sops.yaml` のみを登録し、
-   `config/staging/secrets/kustomization.yaml` の resources に追加する。平文と秘密鍵は登録しない。
-6. `config/staging/bot.toml` のサンプル ID/hostname を staging の値に置換する。
-7. `mise exec -- kubectl apply -k clusters/staging` で入口を用意する。
-   初期状態は config/DB/HelmRelease を停止している。Secret、外部接続先、全成果物の準備が済んだら、
-   config、DB、HelmRelease の順に Git の suspend を解除し、各依存先の Ready を確認する。
-   自動更新処理は停止設定を解除しない。
+1. 対象クラスタの kubeconfig を選び、`mise exec -- kubectl config current-context` で接続先を確認する。新しいクラスタでは、公開済み image に対応するノードで [k3s を準備](deployment.md#12-k3s)し、local-path provisioner が利用できることを確認する。
+2. [Flux の初回接続](flux.md#初回の接続)に従い、共通基盤の `clusters/shared` を適用する。`flux-system` の Kustomization `flux-controllers` と `cnpg-operator` が Ready であることを確認する。
+3. [新規環境の Secret 準備](secret-config.md#新規環境の準備)に従い、staging 専用の Secret と通常設定を用意する。全環境で共通の PQ 鍵を使い、復号鍵を格納した Secret `sops-age` が `flux-system` に配置済みであることを確認する。
+4. [自動更新の設定](#自動更新の設定)に従い、Git 更新用 App の認証を配置する。
+5. 配置設定を `infrastructure/main` に反映してから、初回のみ `mise exec -- kubectl apply --server-side -k clusters/staging` で staging の Flux の入口を追加する。以降は Git から同期される。
 
-## Flux による自動更新
+Config の同期後に DB、DB ロール、アプリの順に自動で反映される。DB は共通の CNPG Operator の Ready も待つ。
+`staging-platform-config`、`staging-platform-db`、`staging-platform-db-roles` と HelmRelease の Ready を確認する。
 
-両環境の成果物監視と Git 更新は、production クラスタの
-`infrastructure/production/image-automation/` に集約する。
-staging 自体は停止していてもよく、再起動したときに staging 側の Flux が最新の desired state を反映する。
-production 側に staging の kubeconfig や復号鍵を渡さない。
+## 自動更新の設定
 
-platform/main のビルドは application image、db-migrator、Chart の可変タグ `main` を更新する。
-Flux の ImagePolicy はこの一つのタグだけを対象とし、`digestReflectionPolicy: Always` で digest の変更を追う。
-ImageUpdateAutomation は `apps/staging/platform/` の digest を main に直接 commit する。
-タグだけで配置せず、解決した digest を Git に固定する。Chart の `0.0.0-main` は Helm 公開用の固定バージョンであり、
-時刻・連番付きのタグを増やさない。Git revision は成果物の OCI metadata と既存 SHA タグから追跡できる。
+[Flux の Git 更新用 App](flux.md#git-更新用-app)を対象クラスタに設定する。同じクラスタに設定済みの場合は再利用する。
+staging の入口を適用すると自動更新も始まる。`platform-image-updates`、staging の各 ImagePolicy と ImageUpdateAutomation `platform-staging` の Ready を確認する。
 
-公開通知、platform の clone、artifacts.json、祖先判定、Migrator の事前互換性判定は使用しない。
-各アプリの既存の起動時チェックが、必須 migration の適用・成功・checksum を照合する。
-公開タイミングがずれて起動に失敗しても、後続の更新や修正で解消する。
-staging を停止したまま Git が更新されても、動作検証済みにはならない。
+以降は platform/main の成果物が `apps/staging/platform/` に自動反映される。
+staging を停止していても Git の更新は続き、再起動時に最新の設定が反映される。
+Git の更新だけでは動作確認済みにはならない。
+同じ環境の自動更新を複数クラスタで同時に有効にしない。
 
-## 認証と有効化
+## 反映の確認
 
-GHCR は Public パッケージを匿名で監視する。読み取り用 Secret や platform 側の通知用 App は不要。
-Git 更新用 App は infrastructure のみにインストールし、Contents: write を付与する。
-production PR 用には Pull requests: write も必要になる。
+[Flux の反映確認](flux.md#反映の確認)に加え、次を確認する。namespace は `anvilsaba-staging` を使う。
 
-production クラスタの flux-system に `gitops-update` Secret を作成する。
-以下の変数には App ID と秘密鍵ファイルのパスを設定する。秘密鍵は Git に登録しない。
-
-```powershell
-mise exec -- kubectl --context <production-context> -n flux-system create secret generic gitops-update `
-  --from-literal=githubAppID=$gitopsAppId `
-  --from-literal=githubAppInstallationOwner=AnvilSaba `
-  --from-file=githubAppPrivateKey=$gitopsAppKeyPath
-```
-
-これは Flux の GitRepository provider: github が短期 token を取得するための Secret である。
-[Flux の GitHub App 設定](https://fluxcd.io/flux/components/source/gitrepositories/#github)に従う。
-App の push で通常の CI が起動するようにし、main の保護設定では staging の参照更新を許可する。
-
-source 移管後、GitRepository `platform-image-updates` と各 ImagePolicy の Ready を確認する。
-`staging.yaml` の ImageUpdateAutomation `platform-staging` の suspend を Git で解除する。
-初回の全 digest が埋まり、digest 対応済み Chart が反映されるまでは HelmRelease を停止したままにする。
-ImageUpdateAutomation の suspend と staging の HelmRelease の suspend は別の設定である。
-前者だけを有効にすれば staging を停止したまま Git の参照を更新できる。
-
-## 受け入れ時の確認
-
-App installation/資格情報、branch protection、実 package の公開チャネル、Flux の実更新は実環境で確認する。
-staging の鍵の保管・暗号化 Secret・外部設定を完了してから、Flux の Git commit と CI、
-source/Kustomization の Ready、復号、Cluster/DatabaseRole、HelmRelease の Ready、
-Bot/紐付け/Public API/Tunnel の疎通を確認する。描画・commit 成功だけでは実反映完了にしない。
-production source の切り替えと旧定義の削除は Issue #6 で行う。
+- Config の復号、Cluster と DatabaseRole、HelmRelease が正常である
+- Bot が Discord に接続し、リンクコードの発行・連携・解除ができる
+- staging の Tunnel 経由で `/whitelist.json` を取得できる

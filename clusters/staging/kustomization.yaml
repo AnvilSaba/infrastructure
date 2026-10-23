@@ -3,7 +3,7 @@ kind: Kustomization
 resources:
   - source.yaml
   - sync.yaml
-
+  - image-automation.yaml
   - config.yaml
   - database.yaml
   - apps.yaml

@@ -1,34 +1,31 @@
 [bot]
-owners = ["000000000000000000"]
+owners = ["422735871410700308"]
 
-# Discord Bot Token は環境変数 DISCORD_BOT_TOKEN に設定する。
-# DB の接続先は DATABASE_URL、パスワードは DATABASE_PASSWORD に設定する。
-# 例: postgres://platform_bot@postgres:5432/platform
 
 [mcguildlink]
-guild_id = "000000000000000000"
-moderator_role_id = "000000000000000000"
+guild_id = "1561819266620072067"
+moderator_role_id = "1562251228510163024"
 display_server_address = "link.example.com"
 # MCGuildLink の監査ログを送る必須チャンネル
-audit_channel_id = "000000000000000000"
+audit_channel_id = "1562251158603432057"
 
 
 [auth]
 # 認証の結果を通知するチャンネルID
-log_channel_id = "000000000000000000"
+log_channel_id = "1562250692155023430"
 # 認証後に付与するロールID
-role_id = "000000000000000000"
+role_id = "1562250911064129649"
 # モーダルのデフォルト値にランダムに選択させるダミーのキーワード郡
 dummy_keywords = ["ダミー", "dummy"]
 
 
 [auto_kick]
 # キック対象のギルドID
-guild_id = "000000000000000000"
+guild_id = "1561819266620072067"
 # 参加してからキックされるまでの猶予時間 (例: "12h" なら12時間) (1時間に一度チェックされる)
 grace_period = "12h"
 # キックされた際にDMへ送信するメッセージ
-kick_message = """てすとサーバー にて合言葉の入力が確認できなかったため、自動的にキックされました。
+kick_message = """合言葉の入力が確認できなかったため、自動的にキックされました。
 再度参加する場合は、以下のリンクから再度参加してください。
 https://example.com/
 """
@@ -36,28 +33,27 @@ https://example.com/
 
 [honeypot]
 # ハニーポットのチャンネルID
-channel_id = "000000000000000000"
+channel_id = "1562250424961212447"
 # 削除対象にする同一内容の過去メッセージの送信された期間 (例: "24h" なら24時間以内)
 message_lookback = "24h"
 # キックされた際にDMへ送信するメッセージ
-kick_message = """アカウントが乗っ取られたとみられる行動を確認したため、「てすとサーバー」から自動的にキックされました。"""
+kick_message = """アカウントが乗っ取られたとみられる行動を確認したため、自動的にキックされました。"""
 # ログを残すチャンネルID
-log_channel_id = "000000000000000000"
+log_channel_id = "1562250692155023430"
 
 
 [message_logging]
 # メッセージの削除・編集のログを残すチャンネルID
-channel_id = "000000000000000000"
+channel_id = "1562250220899672235"
 # 添付ファイル付きメッセージの転送用チャンネル
-snapshot_channel_id = "000000000000000000"
+snapshot_channel_id = "1562250345516892261"
 
 
 [message_cache]
 # 過去メッセージのキャッシュを無効化するかどうか
 disabled = false
 # 過去のメッセージのキャッシュを取るギルドIDのリスト
-# target_guild_ids = ["651286346861641735"]
-target_guild_ids = ["000000000000000000"]
+target_guild_ids = ["1561819266620072067"]
 # リクエスト数を制限する時間枠
 request_window = "5s"
 # 時間枠内で許可するリクエスト数
@@ -68,24 +64,22 @@ concurrent_channels = 20
 
 [pin]
 # チャンネルのオーナーを指定する
-channels = [
-  { id = "1318964564095930419", owner = "422735871410700308" }, # テスト
-]
+channels = []
 
 
 [thread_auto_invite]
 # ロールの追加削除のトリガーとなるロールID
-display_role_id = "000000000000000000"
+display_role_id = "1562249747274924042"
 # それぞれのロールを付与できるメンバーの数 (2500人のサーバでのテストの結果、250人以上にすると招待されない)
 min_member_count = 250
 # 実際に呼び出されるロールのID
-role_ids = ["000000000000000000", "000000000000000000"]
+role_ids = ["1562249812190036048", "1562249839108948059"]
 
 
 [question]
 # 質問の投稿先フォーラムのID
-forum_id = "000000000000000000"
+forum_id = "1562249422899904644"
 # 解決済みのタグID
-solved_tag = "000000000000000000"
+solved_tag = "1562249495545118761"
 # 解決済みスレッド名の先頭につく文字
-solved_name_prefix = "✅️ "
+solved_name_prefix = "\u2705 "

@@ -4,8 +4,6 @@ metadata:
   name: staging-platform-config
   namespace: flux-system
 spec:
-  # staging 専用の暗号化 Secret と app config を用意してから解除する。
-  suspend: true
   interval: 5m
   path: ./config/staging
   prune: true
@@ -16,4 +14,4 @@ spec:
   decryption:
     provider: sops
     secretRef:
-      name: sops-age-staging
+      name: sops-age
