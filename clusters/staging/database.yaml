@@ -43,6 +43,6 @@ spec:
     - apiVersion: postgresql.cnpg.io/v1
       kind: DatabaseRole
       current: >-
-        has(status) && has(status.applied) && status.applied == true &&
+        has(status.applied) && status.applied == true &&
         has(status.observedGeneration) && status.observedGeneration == metadata.generation
   timeout: 5m
