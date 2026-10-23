@@ -1,0 +1,49 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: staging-platform-db
+  namespace: flux-system
+spec:
+  # staging の Secret と共通 Operator を準備してから新規 DB を作成する。
+  suspend: true
+  interval: 5m
+  path: ./infrastructure/staging/database
+  prune: false
+  deletionPolicy: Orphan
+  sourceRef:
+    kind: GitRepository
+    name: staging-platform
+  dependsOn:
+    - name: staging-platform-config
+  healthChecks:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      name: platform-db
+      namespace: anvilsaba-staging
+  timeout: 30m
+
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: staging-platform-db-roles
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: ./infrastructure/staging/roles
+  prune: false
+  deletionPolicy: Orphan
+  sourceRef:
+    kind: GitRepository
+    name: staging-platform
+  dependsOn:
+    - name: staging-platform-db
+    - name: staging-platform-config
+  wait: true
+  healthCheckExprs:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: DatabaseRole
+      current: >-
+        has(status) && has(status.applied) && status.applied == true &&
+        has(status.observedGeneration) && status.observedGeneration == metadata.generation
+  timeout: 5m

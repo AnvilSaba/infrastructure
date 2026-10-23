@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: anvilsaba-staging
+resources:
+  - chart.yaml
+  - release.yaml
+
+configMapGenerator:
+  - name: platform-staging-values
+    files:
+      - values.yaml=environment-values.yaml
+  - name: platform-release-values
+    files:
+      - values.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    reconcile.fluxcd.io/watch: Enabled
