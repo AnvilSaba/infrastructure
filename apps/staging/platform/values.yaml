@@ -1,17 +1,17 @@
 bot:
   image:
     tag: main
-    digest: "" # {"$imagepolicy": "flux-system:staging-bot:digest"}
+    digest: "sha256:b91116b9b3f93da233c9fd859d98341f741ec8b4c0ecc04eb51fff00a0528463" # {"$imagepolicy": "flux-system:staging-bot:digest"}
 mcLinkServer:
   image:
     tag: main
-    digest: "" # {"$imagepolicy": "flux-system:staging-mc-link-server:digest"}
+    digest: "sha256:10430fd925d433ce6157ff24e26a6a8b2e30263f83dbf622a01bcd6484b66190" # {"$imagepolicy": "flux-system:staging-mc-link-server:digest"}
 publicApi:
   image:
     tag: main
-    digest: "" # {"$imagepolicy": "flux-system:staging-public-api:digest"}
+    digest: "sha256:64696b1b2fcf2cfde2bb1612a8b68abbc52714ec754e6c93a889a34de8ab048b" # {"$imagepolicy": "flux-system:staging-public-api:digest"}
 dbMigrator:
   enabled: true
   image:
     tag: main
-    digest: "" # {"$imagepolicy": "flux-system:staging-db-migrator:digest"}
+    digest: "sha256:6aa9f0cadb01608634435e593f79bde833c15d62aec57a4dcd6cccf489488d45" # {"$imagepolicy": "flux-system:staging-db-migrator:digest"}

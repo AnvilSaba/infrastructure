@@ -8,7 +8,7 @@ spec:
   url: oci://ghcr.io/anvilsaba/charts/platform
   ref:
     tag: main
-    digest: "" # {"$imagepolicy": "flux-system:staging-chart:digest"}
+    digest: "sha256:fde07cd0b0a7b57471f624030e5ac76e760bbd753579cca4f4dd04dd7db1eb9c" # {"$imagepolicy": "flux-system:staging-chart:digest"}
   layerSelector:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
