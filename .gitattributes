@@ -1,0 +1,3 @@
+# Preserve the bytes covered by upstream release signatures and checksums.
+infrastructure/base/controllers/upstream.yaml -text
+infrastructure/base/operator/upstream.yaml -text

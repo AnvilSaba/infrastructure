@@ -38,6 +38,35 @@ production を構築する場合は `clusters/production` を指定します。s
 staging は Config・DB・DB ロール・アプリの順に自動で反映されます。
 production は Config・DB・HelmRelease と ImageUpdateAutomation の停止設定を維持し、環境の構築手順に従って解除します。既存 DB がある場合は [DB 移行手順](cloudnativepg-migration.md)へ進んでください。
 
+## 基盤マニフェストとイメージの更新
+
+Flux と CNPG の公式配布物を、それぞれ `infrastructure/base/controllers/upstream.yaml` と `infrastructure/base/operator/upstream.yaml` に原文のまま保存します。イメージの固定と起動オプションは同じディレクトリの `kustomization.yaml` で指定します。保存した配布物は整形・改行変換の対象から除外しています。
+
+| 配布物       | 取得元                                                                                                                                                            | SHA-256                                                            |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Flux v2.9.6  | [公式 install.yaml](https://github.com/fluxcd/flux2/releases/download/v2.9.6/install.yaml)                                                                        | `9c1fda7e401429531ed1478f67ba06b3edff6513b75da7ee47bde9f1c4d4251c` |
+| CNPG v1.30.1 | [検証済み commit の manifest](https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/2a35abb4628f209d149825ef3c38011e0701ff2f/releases/cnpg-1.30.1.yaml) | `37237f145d8138256ea25ae830f87759255665ff08f8d552fdd8224a5ec032fb` |
+
+更新時は次の順で進めます。
+
+1. 公式リリースの manifest・署名・checksums を一時ディレクトリに取得し、期待する repository・workflow・バージョンを指定して署名を検証します。Flux の manifest は署名済み checksums にある `install.yaml` のチェックサムと照合し、CNPG は manifest を対応する `.sigstore.json` で検証します。上流の変更に応じて署名 identity も公式 workflow と照合します。[Flux の署名仕様](https://fluxcd.io/flux/security/)、[CNPG の検証手順](https://cloudnative-pg.io/docs/1.30/installation_upgrade/#verifying-release-assets)を参照してください。
+2. 検証したファイルで `upstream.yaml` を置き換え、この表の取得元・バージョン・SHA-256 を更新します。SHA-256 は `Get-FileHash <ファイル> -Algorithm SHA256` で確認できます。
+3. Flux の全7画像と CNPG Operator の画像について、`images` のタグ・digest を更新します。併せて `infrastructure/base/database/cluster.yaml` の PostgreSQL のタグ・digest を更新します。OCI index の完全な digest を使い、ノードのアーキテクチャに対応する manifest が含まれることを確認します。index の digest と稼働 Pod の platform 別 imageID は、そのまま文字列比較しません。
+4. 各画像をタグではなく digest 指定で署名検証します。例えば CNPG Operator は取得した digest を設定して次のように確認します。略記 digest は使いません。
+
+   ```powershell
+   $operatorImage = 'ghcr.io/cloudnative-pg/cloudnative-pg@sha256:<完全なdigest>'
+   $operatorIdentity = 'https://github.com/cloudnative-pg/cloudnative-pg/.github/workflows/release-publish.yml@refs/tags/v<対象版>'
+   mise exec aqua:sigstore/cosign@3.1.4 -- cosign verify $operatorImage --certificate-identity $operatorIdentity --certificate-oidc-issuer https://token.actions.githubusercontent.com
+   ```
+
+5. `mise run fmt`、`mise run fmt:check`、`mise run check` を実行します。描画後の画像一覧に未固定の参照がないこと、リソースの識別情報や権限・DB 設定に意図しない変更がないことを確認し、PR でレビューします。CNPG は `OPERATOR_IMAGE_NAME` を Operator の固定画像から自動で置換し、DB Pod の初期化画像も同じ digest にします。
+6. 共有コントローラは production にも影響します。稼働中の画像と採用する画像を照合し、DB のバックアップ・復元手順と作業時間を確認してから反映します。DB が1インスタンスのため、イメージ参照や初期化画像の変更で再起動・停止が発生し得ます。production DB の停止設定の解除は別の作業として扱います。
+
+kustomize-controller は `--no-remote-bases=true` を指定しており、Kustomize の `resources` には source artifact 内のローカルファイルを指定します。今回の移行でリポジトリ内の外部 manifest 参照は解消しています。別の GitRepository 等も同じ controller で管理している場合は、そちらも外部 base を使っていないことを反映前に確認してください。切り戻し時もローカルファイル参照を維持し、以前の検証済み画像・設定へ戻します。[Flux のフラグ仕様](https://fluxcd.io/flux/components/kustomize/options/)
+
+PostgreSQL の rolling tag の変化は更新候補として扱い、digest の不一致だけで侵害と判断して一律停止しません。固定後は上流のセキュリティ修正を自動採用しないため、リリース通知や定期点検をもとに検証し、更新 PR を継続して作成します。
+
 ## Git 更新用 App
 
 Flux が Git を読み取り、変更を push するための GitHub App を infrastructure にインストールし、Contents: write を付与します。

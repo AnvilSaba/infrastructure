@@ -1,5 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/oxfmt_v0.71.0/npm/oxfmt/configuration_schema.json",
+  "ignorePatterns": ["infrastructure/base/controllers/upstream.yaml", "infrastructure/base/operator/upstream.yaml"],
   "printWidth": 120,
   "tabWidth": 2
 }
