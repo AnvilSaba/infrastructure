@@ -9,7 +9,7 @@ mcLinkServer:
 publicApi:
   image:
     tag: main
-    digest: "sha256:64696b1b2fcf2cfde2bb1612a8b68abbc52714ec754e6c93a889a34de8ab048b" # {"$imagepolicy": "flux-system:staging-public-api:digest"}
+    digest: "sha256:60e9c637802602cc3d55ee619fa203e0231514c6c723cc7292f783c662c18440" # {"$imagepolicy": "flux-system:staging-public-api:digest"}
 dbMigrator:
   enabled: true
   image:
