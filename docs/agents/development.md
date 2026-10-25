@@ -3,7 +3,7 @@
 ## Verification
 
 - Run `mise run fmt` and then `mise run fmt:check` from the repository root before completing or committing changes supported by Oxfmt. Install tools with `mise install`; see `docs/development.md` for setup.
-- When changing workflows, run `mise exec -- gh actions-lock` and `mise exec -- gh actions-lock --verify`. Run all `gh` commands outside the sandbox. The formatting CI also checks the lockfile locally.
+- When changing workflows, run `mise exec -- gh actions-lock` and `mise exec -- gh actions-lock --verify`. Run all `gh` commands outside the sandbox. GitHub enforces locked action versions at job setup; workflow steps do not repeat lock verification.
 - When manifests are added or changed, render each affected Kustomize root with `mise exec -- kustomize build <path>`. For Helm values, render the pinned chart version with those values and verify application / Migrator compatibility. Rendering alone does not verify reconciliation or connectivity.
 - Fix failures before completing the task. Report checks that cannot run and explain why.
 
