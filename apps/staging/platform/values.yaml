@@ -1,7 +1,7 @@
 bot:
   image:
     tag: main
-    digest: "sha256:53b4ec83683d021dfae08b6b76a2f5a010152e861ffe8bc6f8fdc51c99118d49" # {"$imagepolicy": "flux-system:staging-bot:digest"}
+    digest: "sha256:5b38b765b323fefbff1e47c13bb6d3c053ac22b32256d4d7ac0d0aa93f994484" # {"$imagepolicy": "flux-system:staging-bot:digest"}
 mcLinkServer:
   image:
     tag: main
