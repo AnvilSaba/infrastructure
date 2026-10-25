@@ -1,4 +1,4 @@
-# staging の構築と自動更新
+# staging の構築と更新 PR
 
 staging は共通基盤の `clusters/shared` と環境設定の `clusters/staging` だけで構築できる。production の構築や稼働は必要ない。
 Flux controller と CNPG Operator は共通基盤で管理する。同じクラスタではノードも共有し、DB・PVC・Secret・Discord Bot・テスト用 guild・Cloudflare Tunnel と hostname は環境ごとに分ける。
@@ -46,15 +46,11 @@ Config の同期後に DB、DB ロール、アプリの順に自動で反映さ�
 [Flux の Git 更新用 App](flux.md#git-更新用-app)を対象クラスタに設定する。同じクラスタに設定済みの場合は再利用する。
 staging の入口を適用すると自動更新も始まる。`platform-image-updates`、staging の各 ImagePolicy と ImageUpdateAutomation `platform-staging` の Ready を確認する。
 
-以降は platform/main の成果物が `apps/staging/platform/` に自動反映される。
-staging を停止していても Git の更新は続き、再起動時に最新の設定が反映される。
-Git の更新だけでは動作確認済みにはならない。
-同じ環境の自動更新を複数クラスタで同時に有効にしない。
+platform/main で公開された成果物の更新候補は `automation/staging` ブランチに集約され、GitHub Actions の **Artifact update PR** が main 向けの PR を作成する。
+認証は [共通の Git 更新用 App](flux.md#git-更新用-app)の設定に従う。
+後続の更新候補も同じ PR に反映される。必要なタイミングで人が PR を squash merge すると、更新が staging に反映される。
+同じ環境の自動更新は一つのクラスタで有効にする。
 
-## 反映の確認
+## PR 作成に失敗した場合
 
-[Flux の反映確認](flux.md#反映の確認)に加え、次を確認する。namespace は `anvilsaba-staging` を使う。
-
-- Config の復号、Cluster と DatabaseRole、HelmRelease が正常である
-- Bot が Discord に接続し、リンクコードの発行・連携・解除ができる
-- staging の Tunnel 経由で `/whitelist.json` を取得できる
+**Artifact update PR** を workflow_dispatch で実行し、`environment` に `staging` を選ぶ。

@@ -21,7 +21,7 @@ mise run fmt:check
 - [クラスタの構築とデプロイ](docs/deployment.md)
 - [Flux の初期構築](docs/flux.md)
 - [Secret / Config の準備と運用](docs/secret-config.md)
-- [staging の構築と自動更新](docs/staging.md)
+- [staging の構築と更新 PR](docs/staging.md)
 - [production 更新 PR](docs/production-pr.md)
 - [既存 DB の CloudNativePG 移行](docs/cloudnativepg-migration.md)
 - [設計上の決定](docs/adr/0001-separate-gitops-desired-state.md)

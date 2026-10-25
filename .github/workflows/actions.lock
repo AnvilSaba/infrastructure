@@ -9,7 +9,7 @@ workflows:
     '.github/workflows/ci-gitops.yml':
         - 'actions/checkout@v7.0.1'
         - 'anvilsaba/platform@main'
-    '.github/workflows/production-pr.yml':
+    '.github/workflows/update-pr.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/create-github-app-token@v3.3.0'
         - 'anvilsaba/platform@main'
@@ -26,7 +26,7 @@ dependencies:
         repo_id: 642580244
     'anvilsaba/platform@main':
         ref: 'main'
-        commit: 'sha1-b978061b79007fdaf27940d8a589f1bd5d586973'
+        commit: 'sha1-ad2abf4eff1b70f0387212fa79df5963bdcf1b51'
         owner_id: 321761991
         repo_id: 1348775435
         uses:

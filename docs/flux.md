@@ -63,13 +63,13 @@ Flux と CNPG の公式配布物を、それぞれ `infrastructure/base/controll
 5. `mise run fmt`、`mise run fmt:check`、`mise run check` を実行します。描画後の画像一覧に未固定の参照がないこと、リソースの識別情報や権限・DB 設定に意図しない変更がないことを確認し、PR でレビューします。CNPG は `OPERATOR_IMAGE_NAME` を Operator の固定画像から自動で置換し、DB Pod の初期化画像も同じ digest にします。
 6. 共有コントローラは production にも影響します。稼働中の画像と採用する画像を照合し、DB のバックアップ・復元手順と作業時間を確認してから反映します。DB が1インスタンスのため、イメージ参照や初期化画像の変更で再起動・停止が発生し得ます。production DB の停止設定の解除は別の作業として扱います。
 
-kustomize-controller は `--no-remote-bases=true` を指定しており、Kustomize の `resources` には source artifact 内のローカルファイルを指定します。今回の移行でリポジトリ内の外部 manifest 参照は解消しています。別の GitRepository 等も同じ controller で管理している場合は、そちらも外部 base を使っていないことを反映前に確認してください。切り戻し時もローカルファイル参照を維持し、以前の検証済み画像・設定へ戻します。[Flux のフラグ仕様](https://fluxcd.io/flux/components/kustomize/options/)
+kustomize-controller は `--no-remote-bases=true` を指定しており、Kustomize の `resources` には source artifact 内のローカルファイルを指定します。別の GitRepository 等も同じ controller で管理している場合は、そちらも外部 base を使っていないことを反映前に確認してください。切り戻し時もローカルファイル参照を維持し、以前の検証済み画像・設定へ戻します。[Flux のフラグ仕様](https://fluxcd.io/flux/components/kustomize/options/)
 
 PostgreSQL の rolling tag の変化は更新候補として扱い、digest の不一致だけで侵害と判断して一律停止しません。固定後は上流のセキュリティ修正を自動採用しないため、リリース通知や定期点検をもとに検証し、更新 PR を継続して作成します。
 
 ## Git 更新用 App
 
-Flux が Git を読み取り、変更を push するための GitHub App を infrastructure にインストールし、Contents: write を付与します。
+Flux による Git の読み取り・push と、GitHub Actions による更新 PR の作成に、同じ GitHub App を使用します。infrastructure にインストールし、Contents: write と Pull requests: write を付与します。
 App ID と発行した秘密鍵ファイルを用意します。秘密鍵ファイルは Git 管理外で保管し、平文では登録しません。
 `gitops-update` Secret は SOPS で暗号化して `config/shared/secrets/` に保存し、Flux が `flux-system` に配置します。
 共通基盤の読み取り用 GitRepository は App の認証を使わないため、Secret の配置に Git 更新用の認証は必要ありません。
@@ -109,11 +109,14 @@ App が未作成の間は `resources: []` を維持します。この間は Git 
 mise run sops:edit config/shared/secrets/gitops-update.sops.yaml
 ```
 
-main は PR 経由で保護し、App には staging の参照更新に必要な範囲で直接 push を許可します。
-`automation/production` への App の push / force-push も許可します。
-App の push で CI が起動することを確認してください。
+Flux は更新候補のブランチ `automation/staging` と `automation/production` に push / force-push します。
 
-PR 作成用の認証は [production 更新 PR](production-pr.md#pr-作成用-app)で設定します。
+### 更新 PR の作成
+
+両環境の更新 PR は GitHub Actions の **Artifact update PR** が作成します。
+GitHub Actions に同じ App の ID を variable `GITOPS_UPDATE_APP_ID`、秘密鍵を secret `GITOPS_UPDATE_APP_PRIVATE_KEY` として登録します。
+App の権限を変更した場合は、インストール先でも権限変更を承認します。
+作成された PR で GitOps CI の `validate` と Formatting CI の `format` が起動することを確認します。
 
 自動更新の設定は [staging](staging.md#自動更新の設定) と [production](production-pr.md#初回有効化) の手順に従ってください。
 
