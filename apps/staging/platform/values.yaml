@@ -14,4 +14,4 @@ dbMigrator:
   enabled: true
   image:
     tag: main
-    digest: "sha256:a4baec6acee02607a1b168ba9c62eed777b73683b81786a90570434da0dc947b" # {"$imagepolicy": "flux-system:staging-db-migrator:digest"}
+    digest: "sha256:0a948dbe56e938992cbc12f4e1bdfda110c6bc30fe52455898aad9673ef9c856" # {"$imagepolicy": "flux-system:staging-db-migrator:digest"}
