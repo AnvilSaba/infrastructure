@@ -63,7 +63,7 @@ Flux と CNPG の公式配布物を、それぞれ `infrastructure/base/controll
 5. `mise run fmt`、`mise run fmt:check`、`mise run check` を実行します。描画後の画像一覧に未固定の参照がないこと、リソースの識別情報や権限・DB 設定に意図しない変更がないことを確認し、PR でレビューします。CNPG は `OPERATOR_IMAGE_NAME` を Operator の固定画像から自動で置換し、DB Pod の初期化画像も同じ digest にします。
 6. 共有コントローラは production にも影響します。稼働中の画像と採用する画像を照合し、DB のバックアップ・復元手順と作業時間を確認してから反映します。DB が1インスタンスのため、イメージ参照や初期化画像の変更で再起動・停止が発生し得ます。production DB の停止設定の解除は別の作業として扱います。
 
-kustomize-controller は `--no-remote-bases=true` を指定しており、Kustomize の `resources` には source artifact 内のローカルファイルを指定します。今回の移行でリポジトリ内の外部 manifest 参照は解消しています。別の GitRepository 等も同じ controller で管理している場合は、そちらも外部 base を使っていないことを反映前に確認してください。切り戻し時もローカルファイル参照を維持し、以前の検証済み画像・設定へ戻します。[Flux のフラグ仕様](https://fluxcd.io/flux/components/kustomize/options/)
+kustomize-controller は `--no-remote-bases=true` を指定しており、Kustomize の `resources` には source artifact 内のローカルファイルを指定します。別の GitRepository 等も同じ controller で管理している場合は、そちらも外部 base を使っていないことを反映前に確認してください。切り戻し時もローカルファイル参照を維持し、以前の検証済み画像・設定へ戻します。[Flux のフラグ仕様](https://fluxcd.io/flux/components/kustomize/options/)
 
 PostgreSQL の rolling tag の変化は更新候補として扱い、digest の不一致だけで侵害と判断して一律停止しません。固定後は上流のセキュリティ修正を自動採用しないため、リリース通知や定期点検をもとに検証し、更新 PR を継続して作成します。
 
@@ -119,12 +119,7 @@ GitHub Actions に variable `GITOPS_UPDATE_APP_ID` と secret `GITOPS_UPDATE_APP
 App token で PR を作成し、その PR で GitOps CI の `validate` と Formatting CI の `format` が起動することを確認します。
 
 main の ruleset では PR の作成と `validate` / `format` の成功を必須にし、必須承認数は一人運用に合わせて0とします。更新 PR は必要なタイミングで手動で squash merge します。
-App の main bypass は削除します。管理者の bypass を残す場合は、管理者が必須 CI を迂回できる点に注意してください。
-署名必須化、ImageUpdateAutomation の署名生成、GitRepository の署名検証は今回追加しません。個人のコミット署名は継続します。
-
-既存の main 直接更新から切り替えるときは、先に App の PR 作成権限と Actions の認証設定を用意します。
-ワークフローと staging の push 先を main に反映します。その後、稼働中の `platform-staging.spec.git.push.branch` が `automation/staging` に変わったことと、更新ブランチ・PR・必須 CI が正常に動くことを確認してから App の main bypass を削除します。
-更新 PR の取り込み後は staging への反映を確認します。マニフェストの描画や GitHub 上の CI だけでは実機での更新成功とは扱いません。
+App に main の bypass は付与しません。管理者の bypass を残す場合は、管理者が必須 CI を迂回できる点に注意してください。
 
 自動更新の設定は [staging](staging.md#自動更新の設定) と [production](production-pr.md#初回有効化) の手順に従ってください。
 

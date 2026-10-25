@@ -59,7 +59,7 @@ Flux の標準機能と公開チャネルの選択に関する根拠は [公式�
 
 Git 更新には infrastructure のみに Contents: write を持つ GitHub App を使用する。
 PR 作成には Pull requests: write を付与した App token を使用し、PR の CI が自動起動する経路を維持する。
-App には main の bypass を与えず、両環境とも PR と必須 CI を経由して更新を取り込む。署名必須化と Flux の署名生成・検証は保留する。
+App には main の bypass を与えず、両環境とも PR と必須 CI を経由して更新を取り込む。
 GHCR は公開パッケージを前提として匿名で読み取り、読み取り用 token や platform の source 読み取り用 App は要求しない。
 platform には GHCR への公開に必要な通常の Actions 権限だけを持たせる。
 
