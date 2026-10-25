@@ -24,7 +24,6 @@ SOPS の暗号化には全環境で同じ PQ 鍵を使う。
 
 同じクラスタの Flux が両環境の成果物の検出、Git の自動更新、デプロイを行う。Kustomization と配置設定は環境ごとに分ける。
 staging を別クラスタに配置する場合も、そのクラスタに共通基盤と staging の入口を適用する。同じ環境の Git 自動更新は一つのクラスタだけで有効にする。
-staging は通常稼働を続け、エラーへの対処で必要な場合に停止する。
 SOPS 復号鍵は全環境で共有し、配置先クラスタの `flux-system` に Secret `sops-age` として配置する。
 
 staging は application image・db-migrator・OCI Chart の可変タグ `main` の digest を追跡し、`apps/staging/platform/` の更新候補を `automation/staging` ブランチの1つの PR に集約する。

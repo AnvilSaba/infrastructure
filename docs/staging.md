@@ -3,7 +3,6 @@
 staging は共通基盤の `clusters/shared` と環境設定の `clusters/staging` だけで構築できる。production の構築や稼働は必要ない。
 Flux controller と CNPG Operator は共通基盤で管理する。同じクラスタではノードも共有し、DB・PVC・Secret・Discord Bot・テスト用 guild・Cloudflare Tunnel と hostname は環境ごとに分ける。
 production のデータや資格情報は使用しない。
-staging は通常稼働を続け、エラーへの対処で必要な場合に停止する。
 
 ## 構成
 
@@ -52,17 +51,4 @@ platform/main で公開された成果物の更新候補は `automation/staging`
 後続の更新候補も同じ PR に反映される。必要なタイミングで人が PR を squash merge すると、更新が staging に反映される。
 同じ環境の自動更新は一つのクラスタで有効にする。
 
-## 更新候補の取り込み
-
-PR 本文に従って確認し、必要なタイミングで squash merge して更新ブランチを削除する。取り込み後は [反映の確認](#反映の確認)を行う。
-
-競合時は Flux が `automation/staging` の更新候補を最新 main から再生成するのを待ち、最新の CI と差分を確認する。
 PR 作成に失敗した場合は、**Artifact update PR** を workflow_dispatch で実行し、`environment` に `staging` を選ぶ。
-
-## 反映の確認
-
-[Flux の反映確認](flux.md#反映の確認)に加え、次を確認する。namespace は `anvilsaba-staging` を使う。
-
-- Config の復号、Cluster と DatabaseRole、HelmRelease が正常である
-- Bot が Discord に接続し、リンクコードの発行・連携・解除ができる
-- staging の Tunnel 経由で `/whitelist.json` を取得できる
