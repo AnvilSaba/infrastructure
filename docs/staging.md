@@ -1,4 +1,4 @@
-# staging の構築と自動更新
+# staging の構築と更新 PR
 
 staging は共通基盤の `clusters/shared` と環境設定の `clusters/staging` だけで構築できる。production の構築や稼働は必要ない。
 Flux controller と CNPG Operator は共通基盤で管理する。同じクラスタではノードも共有し、DB・PVC・Secret・Discord Bot・テスト用 guild・Cloudflare Tunnel と hostname は環境ごとに分ける。
@@ -46,10 +46,21 @@ Config の同期後に DB、DB ロール、アプリの順に自動で反映さ�
 [Flux の Git 更新用 App](flux.md#git-更新用-app)を対象クラスタに設定する。同じクラスタに設定済みの場合は再利用する。
 staging の入口を適用すると自動更新も始まる。`platform-image-updates`、staging の各 ImagePolicy と ImageUpdateAutomation `platform-staging` の Ready を確認する。
 
-以降は platform/main の成果物が `apps/staging/platform/` に自動反映される。
-staging を停止していても Git の更新は続き、再起動時に最新の設定が反映される。
-Git の更新だけでは動作確認済みにはならない。
+platform/main の成果物の更新候補は `automation/staging` ブランチに集約され、GitHub Actions の **Artifact update PR** が main 向けの PR を作成する。
+PR 作成用 App と main の保護設定は [共通の更新 PR 設定](flux.md#更新-pr-と-main-の保護)に従う。
+後続の更新候補も同じ PR に反映される。自動 merge は行わず、merge するまで staging の配置は変わらない。
+staging を停止していても更新候補の検出は続く。再起動時には main に取り込んだ設定が反映される。
 同じ環境の自動更新を複数クラスタで同時に有効にしない。
+
+## 更新候補の取り込み
+
+1. 必須 CI と差分を確認し、Chart・各 image の digest、アプリと Migrator の組み合わせを確認する。成果物は別々に公開されるため、必要な候補が揃うまで待つ。
+2. 必要なタイミングで PR を squash merge する。更新候補をまとめて main の1コミットにし、更新ブランチを削除する。
+3. 下記の反映確認を行う。Git の更新だけでは動作確認済みにはならない。
+
+`automation/staging` は Flux が最新 main と更新候補から再生成するため、手作業で変更しない。
+競合時は最新 main からの再生成を待ち、最新の CI と差分を確認する。
+PR 作成に失敗した場合は、**Artifact update PR** を workflow_dispatch で実行し、`environment` に `staging` を選ぶ。
 
 ## 反映の確認
 

@@ -98,9 +98,9 @@ spec:
       author:
         name: gitops-update[bot]
         email: gitops-update[bot]@users.noreply.github.com
-      messageTemplate: "chore(staging): 公開済み成果物を更新する"
+      messageTemplate: "chore(staging): 公開済み成果物の更新を提案する"
     push:
-      branch: main
+      branch: automation/staging
   update:
     path: ./apps/staging/platform
     strategy: Setters

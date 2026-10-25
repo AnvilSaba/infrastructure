@@ -4,13 +4,10 @@ production の更新候補は `automation/production` ブランチの PR にま�
 
 ## PR 作成用 App
 
-PR は GitHub Actions の **Production update PR** が作成する。
-PR 作成に使う GitHub App に Contents: read と Pull requests: write を付与し、
-GitHub Actions の variable `GITOPS_UPDATE_APP_ID` と secret `GITOPS_UPDATE_APP_PRIVATE_KEY` を設定する。
-Flux 用 App を共用する場合は、その App に Pull requests: write を追加する。
+PR は GitHub Actions の **Artifact update PR** が作成する。
+認証と main の保護設定は [共通の更新 PR 設定](flux.md#更新-pr-と-main-の保護)に従う。
 
-main への merge は承認後に許可し、PR が更新されたら古い承認を無効にする。
-作成された PR で CI が起動することを確認する。
+main への merge は人が差分と CI を確認してから行う。別のレビュアーがいない運用では必須承認数を0とし、PR が更新されたら既存の承認を無効にする。
 
 ## 初回有効化
 
@@ -25,7 +22,7 @@ main への merge は承認後に許可し、PR が更新されたら古い承�
 
 1. CI と差分、Chart と image の tag / digest を確認する。
 2. staging の実行結果、アプリと Migrator の組み合わせ、SQL の後方互換性を確認する。未確認なら staging を起動して検証する。
-3. PR を merge し、更新ブランチを削除する。次の候補を最新 main から作成できるようにする。
+3. PR を squash merge し、更新ブランチを削除する。次の候補を最新 main から作成できるようにする。
 4. [本番デプロイ後の確認](deployment.md#3-デプロイ後の確認)を行う。
 
 ## 手動指定と切り戻し
@@ -43,6 +40,6 @@ Migrator を固定するときは filterTags を既存の完全 SHA タグへ変
 
 ## 更新 PR の問題への対処
 
-main と競合する場合は更新ブランチへ main を merge し、最新の CI と差分を再確認する。
+main と競合する場合は最新 main からの再生成を待ち、最新の CI と差分を再確認する。
 `automation/production` の成果物参照は手作業で編集しない。
-PR の自動作成に失敗した場合は、ブランチの差分を確認し、GitHub Actions の **Production update PR** を workflow_dispatch から再実行する。
+PR の自動作成に失敗した場合は、ブランチの差分を確認し、GitHub Actions の **Artifact update PR** を workflow_dispatch から再実行する。`environment` に `production` を選ぶ。

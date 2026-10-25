@@ -109,11 +109,22 @@ App が未作成の間は `resources: []` を維持します。この間は Git 
 mise run sops:edit config/shared/secrets/gitops-update.sops.yaml
 ```
 
-main は PR 経由で保護し、App には staging の参照更新に必要な範囲で直接 push を許可します。
-`automation/production` への App の push / force-push も許可します。
-App の push で CI が起動することを確認してください。
+App の push / force-push は更新候補のブランチ `automation/staging` と `automation/production` で利用します。main への直接 push は許可しません。
 
-PR 作成用の認証は [production 更新 PR](production-pr.md#pr-作成用-app)で設定します。
+### 更新 PR と main の保護
+
+両環境の更新 PR は GitHub Actions の **Artifact update PR** が作成します。
+Git 更新用 App を共用する場合は Pull requests: write を追加し、インストール先でも権限変更を承認します。別の App を使う場合は Contents: read と Pull requests: write が必要です。
+GitHub Actions に variable `GITOPS_UPDATE_APP_ID` と secret `GITOPS_UPDATE_APP_PRIVATE_KEY` を登録します。
+App token で PR を作成し、その PR で GitOps CI の `validate` と Formatting CI の `format` が起動することを確認します。
+
+main の ruleset は PR と `validate` / `format` の成功を必須にし、必須承認数は一人運用に合わせて0とします。更新 PR は必要なタイミングで手動で squash merge します。
+App の main bypass は削除します。管理者の bypass を残す場合は、管理者が必須 CI を迂回できる点に注意してください。
+署名必須化、ImageUpdateAutomation の署名生成、GitRepository の署名検証は今回追加しません。個人のコミット署名は継続します。
+
+既存の main 直接更新から切り替えるときは、先に App の PR 作成権限と Actions の認証設定を用意します。
+ワークフローと staging の push 先を main に反映し、稼働中の `platform-staging.spec.git.push.branch` が `automation/staging` に変わり、更新ブランチ・PR・必須 CI が正常に動くことを確認してから App の main bypass を削除します。
+更新 PR の取り込み後は staging の反映確認を行います。描画や GitHub 上の CI だけでは実機での更新成功とは扱いません。
 
 自動更新の設定は [staging](staging.md#自動更新の設定) と [production](production-pr.md#初回有効化) の手順に従ってください。
 
