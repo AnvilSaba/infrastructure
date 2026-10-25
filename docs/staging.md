@@ -51,4 +51,6 @@ platform/main で公開された成果物の更新候補は `automation/staging`
 後続の更新候補も同じ PR に反映される。必要なタイミングで人が PR を squash merge すると、更新が staging に反映される。
 同じ環境の自動更新は一つのクラスタで有効にする。
 
-PR 作成に失敗した場合は、**Artifact update PR** を workflow_dispatch で実行し、`environment` に `staging` を選ぶ。
+## PR 作成に失敗した場合
+
+**Artifact update PR** を workflow_dispatch で実行し、`environment` に `staging` を選ぶ。
