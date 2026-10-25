@@ -24,11 +24,11 @@ SOPS の暗号化には全環境で同じ PQ 鍵を使う。
 
 同じクラスタの Flux が両環境の成果物の検出、Git の自動更新、デプロイを行う。Kustomization と配置設定は環境ごとに分ける。
 staging を別クラスタに配置する場合も、そのクラスタに共通基盤と staging の入口を適用する。同じ環境の Git 自動更新は一つのクラスタだけで有効にする。
-staging のワークロードを停止していても、Git の自動更新は継続する。
+staging は通常稼働を続け、エラーへの対処で必要な場合に停止する。
 SOPS 復号鍵は全環境で共有し、配置先クラスタの `flux-system` に Secret `sops-age` として配置する。
 
 staging は application image・db-migrator・OCI Chart の可変タグ `main` の digest を追跡し、`apps/staging/platform/` の更新候補を `automation/staging` ブランチの1つの PR に集約する。
-main の自動更新コミットを減らすため、必要なタイミングで人が squash merge する。PR を取り込むまでは staging の配置を維持する。
+main の自動更新コミットを減らすため、必要なタイミングで人が squash merge する。PR を取り込むと、その更新が staging に反映される。
 並び替え用の時刻・連番タグ、公開通知、pending 状態、Git の祖先判定、アプリと Migrator の事前互換性判定は設けない。
 各アプリは既存の起動時チェックで必要な migration の適用有無・成功状態・checksum を検証する。
 公開タイミングのずれによる staging の起動失敗は許容し、後続成果物の反映や修正で解消する。
@@ -37,8 +37,7 @@ production は application image と Chart の安定版 SemVer、db-migrator の
 Flux は `apps/production/platform/` の更新を専用ブランチに push し、小さな GitHub Actions が既存 PR を再利用して提案する。
 成果物の公開は更新候補の検出につながるが、production の desired state は人が PR をレビューして merge するまで変わらない。
 release workflow の通知と任意の deploy 入力、独自の release/Git revision 照合スクリプトは廃止する。
-staging の停止中も候補を作成できるが、Git の更新だけでは動作確認済みとは扱わない。
-アプリ・Migrator の組み合わせと DB の後方互換性はレビューし、未確認なら staging を起動して確認する。
+アプリ・Migrator の組み合わせと DB の後方互換性をレビューし、未確認の項目は staging で検証する。
 
 ## 成果物の識別と更新順序
 
@@ -57,9 +56,8 @@ Flux の標準機能と公開チャネルの選択に関する根拠は [公式�
 
 ## リポジトリ間の認証
 
-Git 更新には infrastructure のみに Contents: write を持つ GitHub App を使用する。
-PR 作成には Pull requests: write を付与した App token を使用し、PR の CI が自動起動する経路を維持する。
-App には main の bypass を与えず、両環境とも PR と必須 CI を経由して更新を取り込む。
+Git の読み取り・push と PR 作成には、infrastructure のみに Contents: write と Pull requests: write を持つ同じ GitHub App を使用する。
+GitHub Actions は App token で更新 PR を作成し、PR の CI を起動する。
 GHCR は公開パッケージを前提として匿名で読み取り、読み取り用 token や platform の source 読み取り用 App は要求しない。
 platform には GHCR への公開に必要な通常の Actions 権限だけを持たせる。
 

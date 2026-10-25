@@ -69,7 +69,7 @@ PostgreSQL の rolling tag の変化は更新候補として扱い、digest の�
 
 ## Git 更新用 App
 
-Flux が Git を読み取り、変更を push するための GitHub App を infrastructure にインストールし、Contents: write を付与します。
+Flux による Git の読み取り・push と、GitHub Actions による更新 PR の作成に、同じ GitHub App を使用します。infrastructure にインストールし、Contents: write と Pull requests: write を付与します。
 App ID と発行した秘密鍵ファイルを用意します。秘密鍵ファイルは Git 管理外で保管し、平文では登録しません。
 `gitops-update` Secret は SOPS で暗号化して `config/shared/secrets/` に保存し、Flux が `flux-system` に配置します。
 共通基盤の読み取り用 GitRepository は App の認証を使わないため、Secret の配置に Git 更新用の認証は必要ありません。
@@ -109,17 +109,14 @@ App が未作成の間は `resources: []` を維持します。この間は Git 
 mise run sops:edit config/shared/secrets/gitops-update.sops.yaml
 ```
 
-App の push / force-push は更新候補のブランチ `automation/staging` と `automation/production` で利用します。App に main への直接 push は許可しません。
+Flux は更新候補のブランチ `automation/staging` と `automation/production` に push / force-push します。
 
-### 更新 PR と main の保護
+### 更新 PR の作成
 
 両環境の更新 PR は GitHub Actions の **Artifact update PR** が作成します。
-Git 更新用 App を共用する場合は Pull requests: write を追加し、インストール先でも権限変更を承認します。別の App を使う場合は Contents: read と Pull requests: write が必要です。
-GitHub Actions に variable `GITOPS_UPDATE_APP_ID` と secret `GITOPS_UPDATE_APP_PRIVATE_KEY` を登録します。
-App token で PR を作成し、その PR で GitOps CI の `validate` と Formatting CI の `format` が起動することを確認します。
-
-main の ruleset では PR の作成と `validate` / `format` の成功を必須にし、必須承認数は一人運用に合わせて0とします。更新 PR は必要なタイミングで手動で squash merge します。
-App に main の bypass は付与しません。管理者の bypass を残す場合は、管理者が必須 CI を迂回できる点に注意してください。
+GitHub Actions に同じ App の ID を variable `GITOPS_UPDATE_APP_ID`、秘密鍵を secret `GITOPS_UPDATE_APP_PRIVATE_KEY` として登録します。
+App の権限を変更した場合は、インストール先でも権限変更を承認します。
+作成された PR で GitOps CI の `validate` と Formatting CI の `format` が起動することを確認します。
 
 自動更新の設定は [staging](staging.md#自動更新の設定) と [production](production-pr.md#初回有効化) の手順に従ってください。
 
