@@ -28,7 +28,7 @@ staging のワークロードを停止していても、Git の自動更新は�
 SOPS 復号鍵は全環境で共有し、配置先クラスタの `flux-system` に Secret `sops-age` として配置する。
 
 staging は application image・db-migrator・OCI Chart の可変タグ `main` の digest を追跡し、`apps/staging/platform/` の更新候補を `automation/staging` ブランチの1つの PR に集約する。
-main の自動更新コミットを減らすため、必要なタイミングで人が squash merge し、取り込むまで staging の配置は維持する。
+main の自動更新コミットを減らすため、必要なタイミングで人が squash merge する。PR を取り込むまでは staging の配置を維持する。
 並び替え用の時刻・連番タグ、公開通知、pending 状態、Git の祖先判定、アプリと Migrator の事前互換性判定は設けない。
 各アプリは既存の起動時チェックで必要な migration の適用有無・成功状態・checksum を検証する。
 公開タイミングのずれによる staging の起動失敗は許容し、後続成果物の反映や修正で解消する。
@@ -59,7 +59,7 @@ Flux の標準機能と公開チャネルの選択に関する根拠は [公式�
 
 Git 更新には infrastructure のみに Contents: write を持つ GitHub App を使用する。
 PR 作成には Pull requests: write を付与した App token を使用し、PR の CI が自動起動する経路を維持する。
-App には main の bypass を与えず、両環境とも PR と必須 CI を経由して取り込む。署名必須化と Flux の署名生成・検証は保留する。
+App には main の bypass を与えず、両環境とも PR と必須 CI を経由して更新を取り込む。署名必須化と Flux の署名生成・検証は保留する。
 GHCR は公開パッケージを前提として匿名で読み取り、読み取り用 token や platform の source 読み取り用 App は要求しない。
 platform には GHCR への公開に必要な通常の Actions 権限だけを持たせる。
 

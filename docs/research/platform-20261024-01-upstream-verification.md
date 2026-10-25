@@ -94,6 +94,6 @@ Flux 公式資料は remote base を reconcile ごとに取得し、ローカル
 
 1. 優先度高：外部 YAML の内容をレビュー可能な形で固定する。 最小案は今回照合した完全 SHA-256 と取得元を記録して YAML をリポジトリ内へ保存し、差分レビューで更新すること。CNPG の完全 commit URL は代替になるが外部取得依存は残る。Flux release の `immutable: false` を「上流が不変性を保証する」と扱わない。既存の remote base を解消してから `--no-remote-bases=true` を導入する。[Flux の推奨](https://fluxcd.io/flux/security/best-practices/)
 2. 優先度高：Flux 7画像、CNPG Operator、PostgreSQL を完全 digest へ固定する。 YAML 保存だけでは内部タグの可変性は残る。採用時に完全 digest・platform・取得元を確認し、可能な対象は署名／provenance の実検証も記録する。今回のメモにない digest や報告の略記値を補完して使わない。production DB は再開前の確認事項に含める。[Kubernetes の内容固定](https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy)
-3. 優先度中：更新を PR に集約し、必須 CI と App の bypass 縮小を行う。後続の方針として、staging は `automation/staging` の1つの PR に更新候補をまとめ、必要なタイミングで squash merge する。App id `5432448` は AnvilSaba GitOps Update。PR 作成権限と認証を用意し、staging の新しい経路を確認してから main bypass を削除する。署名必須化・automation の署名生成・source の署名検証は保留とする。この調査時点では管理設定を変更していない。現在の導入手順は [Flux の更新 PR 設定](../flux.md#更新-pr-と-main-の保護)を参照する。
+3. 優先度中：更新を PR に集約し、CI を必須にして App の bypass を縮小する。後続の方針として、staging の更新候補は `automation/staging` の1つの PR にまとめ、必要なタイミングで squash merge する。App id `5432448` の名前は AnvilSaba GitOps Update。PR 作成権限と認証を用意し、staging の新しい更新経路を確認してから App の main bypass を削除する。署名必須化・automation の署名生成・source の署名検証は保留とする。この調査時点では管理設定を変更していない。現在の導入手順は [Flux の更新 PR 設定](../flux.md#更新-pr-と-main-の保護)を参照する。
 
 未解決なのは実際の稼働 digest と desired state の一致、過去のタグ／asset／registry drift、各対象の署名・attestation 実検証、App の特定である。これらを未確認のまま、再現性改善の必要性と、侵害発生の有無に関する判断を区別する。

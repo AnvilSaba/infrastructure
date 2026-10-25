@@ -7,7 +7,7 @@ production の更新候補は `automation/production` ブランチの PR にま�
 PR は GitHub Actions の **Artifact update PR** が作成する。
 認証と main の保護設定は [共通の更新 PR 設定](flux.md#更新-pr-と-main-の保護)に従う。
 
-main への merge は人が差分と CI を確認してから行う。別のレビュアーがいない運用では必須承認数を0とし、PR が更新されたら既存の承認を無効にする。
+main への merge は人が差分と CI を確認してから行う。別のレビュアーがいない運用では必須承認数を0とする。PR が更新されたら既存の承認を無効にする。
 
 ## 初回有効化
 
@@ -40,6 +40,6 @@ Migrator を固定するときは filterTags を既存の完全 SHA タグへ変
 
 ## 更新 PR の問題への対処
 
-main と競合する場合は最新 main からの再生成を待ち、最新の CI と差分を再確認する。
+main と競合する場合は更新候補が最新 main から再生成されるのを待ち、最新の CI と差分を再確認する。
 `automation/production` の成果物参照は手作業で編集しない。
 PR の自動作成に失敗した場合は、ブランチの差分を確認し、GitHub Actions の **Artifact update PR** を workflow_dispatch から再実行する。`environment` に `production` を選ぶ。
